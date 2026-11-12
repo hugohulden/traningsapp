@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0b0f14;
-  --color-panel: #141a22;
-  --color-panel2: #1c2430;
-  --color-line: #2a3442;
-  --color-ink: #e6edf3;
-  --color-mute: #8b98a8;
-  --color-accent: #a3e635;
-  --color-run: #38bdf8;
+  --color-bg: #07090d;
+  --color-panel: #0f131a;
+  --color-panel2: #171c25;
+  --color-line: #222a36;
+  --color-ink: #eef2f7;
+  --color-mute: #8691a2;
+  --color-accent: #c6f34a;
+  --color-run: #43d3f5;
   --color-warn: #fbbf24;
-  --color-bad: #f87171;
+  --color-bad: #fb7185;
   --color-onaccent: #000000;
   --font-sans: ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
 }
 
 :root[data-theme="light"] {
-  --color-bg: #f3f5f8;
+  --color-bg: #f2f4f7;
   --color-panel: #ffffff;
-  --color-panel2: #eaeef3;
-  --color-line: #d5dce5;
+  --color-panel2: #edf0f4;
+  --color-line: #dfe4eb;
   --color-ink: #0f172a;
   --color-mute: #5b6677;
   --color-accent: #4d7c0f;
@@ -33,7 +33,11 @@
 
 html, body, #root { height: 100%; }
 body {
-  background: var(--color-bg);
+  background:
+    radial-gradient(120% 60% at 100% -10%, color-mix(in srgb, var(--color-run) 14%, transparent), transparent 60%),
+    radial-gradient(90% 50% at -10% 0%, color-mix(in srgb, var(--color-accent) 9%, transparent), transparent 60%),
+    var(--color-bg);
+  background-attachment: fixed;
   color: var(--color-ink);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
@@ -46,3 +50,19 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .safe-top { padding-top: max(env(safe-area-inset-top), 12px); }
 .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 8px); }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Gradienttext och glödande kant för hjältekortet. */
+.text-grad {
+  background: linear-gradient(100deg, var(--color-accent), var(--color-run));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ring-grad {
+  background:
+    linear-gradient(var(--color-panel), var(--color-panel)) padding-box,
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 70%, transparent), color-mix(in srgb, var(--color-run) 70%, transparent)) border-box;
+  border: 1px solid transparent;
+}
+.glow-accent { box-shadow: 0 6px 24px -8px color-mix(in srgb, var(--color-accent) 60%, transparent); }
+.glow-run { box-shadow: 0 6px 24px -8px color-mix(in srgb, var(--color-run) 60%, transparent); }

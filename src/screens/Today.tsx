@@ -7,7 +7,7 @@ import { weekIndexForDate, weeksToRace, PLAN_LENGTH, type PlannedSession } from 
 import { BACKUP_REMINDER_DAYS, BODY, GENERATOR, GYM_TEMPLATES, PLAN_START, RACE_NAME } from '../plan/config';
 import { diffDays, formatLong, formatShort, DAY_NAMES, testDate } from '../lib/dates';
 import { num } from '../lib/format';
-import { Badge, Button, Card, Header, ProgressBar, Sheet, Stat } from '../ui/ui';
+import { Badge, Button, Card, Header, ProgressBar, Sheet } from '../ui/ui';
 import { SessionCard } from '../ui/session';
 import { isDone, useToday, useWeekLogs, weekPlan, weekStatus } from '../ui/hooks';
 import { RunLogSheet } from '../ui/run';
@@ -142,22 +142,51 @@ function TopStats(p: {
   restart?: boolean;
 }) {
   const weeks = weeksToRace(p.day);
+  const days = diffDays('2027-05-22', p.day);
+  const total = p.status.total || 6;
   return (
-    <Card>
-      <div className="flex flex-wrap gap-2 mb-3">
-        <Badge tone="run">{p.phase}</Badge>
-        {p.deload && <Badge tone="warn">Deloadvecka</Badge>}
-        {p.repeated && <Badge tone="warn">{p.restart ? 'Omstart 75 %' : 'Upprepad vecka'}</Badge>}
+    <div className="ring-grad rounded-3xl p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mute">{RACE_NAME} 2027</div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-grad text-6xl font-black leading-none tracking-tighter">{days > 0 ? days : 0}</span>
+            <span className="text-lg font-semibold text-mute">{days > 0 ? 'dagar kvar' : 'idag!'}</span>
+          </div>
+          {weeks > 0 && <div className="mt-1 text-sm text-mute">{weeks} veckor · 21,1 km</div>}
+        </div>
+        <div className="flex flex-col items-end gap-1.5">
+          <Badge tone="run">{p.phase}</Badge>
+          {p.deload && <Badge tone="warn">Deloadvecka</Badge>}
+          {p.repeated && <Badge tone="warn">{p.restart ? 'Omstart 75 %' : 'Upprepad vecka'}</Badge>}
+        </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
-        <Stat label="Pass i veckan" value={`${p.status.done} av ${p.status.total || 6}`} />
-        <Stat label="Km i veckan" value={`${num(p.status.kmDone)}${p.weekKm ? ` / ${num(p.weekKm)}` : ''}`} />
-        <Stat label={`Till ${RACE_NAME}`} value={weeks > 0 ? `${weeks} v` : 'Loppvecka'} sub={weeks > 0 ? `${diffDays('2027-05-22', p.day)} dagar` : undefined} />
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        <div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-mute">Pass</span>
+            <span className="text-sm font-bold">
+              {p.status.done}<span className="text-mute font-medium"> / {total}</span>
+            </span>
+          </div>
+          <div className="mt-1.5">
+            <ProgressBar value={p.status.done} max={total} />
+          </div>
+        </div>
+        <div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-mute">Km</span>
+            <span className="text-sm font-bold">
+              {num(p.status.kmDone)}
+              {p.weekKm ? <span className="text-mute font-medium"> / {num(p.weekKm)}</span> : null}
+            </span>
+          </div>
+          <div className="mt-1.5">
+            <ProgressBar tone="run" value={p.status.kmDone} max={p.weekKm || 1} />
+          </div>
+        </div>
       </div>
-      <div className="mt-3">
-        <ProgressBar value={p.status.done} max={p.status.total || 6} />
-      </div>
-    </Card>
+    </div>
   );
 }
 

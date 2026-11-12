@@ -50,12 +50,14 @@ export function SessionCard({
   const slots = isGym ? resolveSlots(s.gym!, settings) : [];
 
   return (
-    <Card className={done ? 'opacity-70' : ''}>
-      <div className="flex items-start gap-3">
-        <div className={`mt-1 h-3 w-3 shrink-0 rounded-full ${isGym ? 'bg-accent' : 'bg-run'}`} />
+    <Card className={`relative isolate overflow-hidden ${done ? 'opacity-70' : ''}`}>
+      <div className={`absolute -z-10 inset-y-0 left-0 w-1 ${isGym ? 'bg-accent' : 'bg-run'}`} />
+      <div className={`pointer-events-none absolute -z-10 -right-10 -top-10 h-32 w-32 rounded-full blur-3xl ${isGym ? 'bg-accent/15' : 'bg-run/15'}`} />
+      <div className="relative flex items-start gap-3">
         <div className="flex-1 min-w-0">
+          <div className={`text-[11px] font-bold uppercase tracking-[0.16em] ${isGym ? 'text-accent' : 'text-run'}`}>{isGym ? 'Gym' : 'Löpning'}</div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="font-semibold">{s.title}</div>
+            <div className="text-lg font-bold tracking-tight">{s.title}</div>
             {s.optional && <Badge>valfritt</Badge>}
             {s.gym?.deload && <Badge tone="warn">deload</Badge>}
             {done && <Badge tone="accent">✓ klart</Badge>}
@@ -63,7 +65,10 @@ export function SessionCard({
           {showDate && <div className="text-xs text-mute">{DAY_NAMES[s.day]} {formatShort(s.date)}</div>}
           {s.run && (
             <>
-              <div className="mt-1 text-2xl font-bold">{num(s.run.km)} km</div>
+              <div className="mt-1 text-4xl font-black tracking-tighter">
+                {num(s.run.km)}
+                <span className="ml-1 text-lg font-semibold text-mute">km</span>
+              </div>
               <div className="text-sm">{s.run.text}</div>
               {!compact && <RunGuideView run={s.run} settings={settings} />}
             </>

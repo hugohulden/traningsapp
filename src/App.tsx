@@ -10,6 +10,7 @@ import type { AppSettings } from './plan/settings';
 import { syncIntervals } from './sync/sync';
 import { ConfirmHost } from './ui/confirm';
 import { useTheme } from './ui/theme';
+import { Icons } from './ui/icons';
 
 export type Tab = 'idag' | 'plan' | 'stat' | 'kropp' | 'mer';
 export type Screen = { name: 'gym'; id: string } | { name: 'week'; index: number };
@@ -81,22 +82,22 @@ export default function App() {
             <WeekScreen index={top.index} />
           )
         ) : (
-          <div className="pb-24" key={theme}>
+          <div className="pb-28" key={theme}>
             {tab === 'idag' && <TodayScreen />}
             {tab === 'plan' && <PlanScreen />}
             {tab === 'stat' && <StatsScreen />}
             {tab === 'kropp' && <BodyScreen />}
             {tab === 'mer' && <SettingsScreen />}
-            <nav className="fixed bottom-0 inset-x-0 z-30 bg-bg/95 backdrop-blur border-t border-line safe-bottom">
-              <div className="flex">
+            <nav className="fixed bottom-0 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
+              <div className="pointer-events-auto mx-auto flex max-w-md rounded-[26px] border border-line bg-panel/80 p-1.5 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl">
                 {TABS.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => nav.setTab(t.id)}
-                    className={`flex-1 pt-2 pb-1 flex flex-col items-center gap-0.5 ${tab === t.id ? 'text-accent' : 'text-mute'}`}
+                    className={`flex-1 rounded-[20px] py-1.5 flex flex-col items-center gap-0.5 transition-colors ${tab === t.id ? 'bg-accent/15 text-accent' : 'text-mute'}`}
                   >
-                    <span className="text-xl leading-none">{t.icon}</span>
-                    <span className="text-[11px]">{t.label}</span>
+                    {Icons[t.id]}
+                    <span className="text-[10px] font-semibold">{t.label}</span>
                   </button>
                 ))}
               </div>
