@@ -55,11 +55,16 @@ export interface RunRec {
   notes: string;
   intervalPaceSec?: number;
   test?: '5k' | '10k' | 'race';
+  /** Tid för själva testdistansen (hela passet innehåller uppvärmning). */
+  testTimeSec?: number;
+  /** Importerat testlopp som väntar på att du fyller i testtiden. */
+  needsTestTime?: boolean;
   /** Planerade km i hög fart (för andel lugn löpning). */
   plannedWorkKm?: number;
   plannedKm?: number;
   /** Förberett för import av Garmin Connect CSV. */
-  source: 'manuell' | 'garmin';
+  source: 'manuell' | 'garmin' | 'intervals';
+  name?: string;
   externalId?: string;
   activityType?: string;
   maxHr?: number;

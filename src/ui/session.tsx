@@ -7,7 +7,10 @@ import { startGymSession, useActiveGymSession } from '../db/store';
 import { useNav } from '../App';
 import { DAY_NAMES, formatShort } from '../lib/dates';
 import { resolveSlots, getExercise } from '../engine/gymPlan';
-import { num } from '../lib/format';
+import { formatDuration, formatPace, num } from '../lib/format';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
+import { weekIndexForDate } from '../engine/planGenerator';
 
 export function SessionCard({
   s,
@@ -26,6 +29,11 @@ export function SessionCard({
   const active = useActiveGymSession();
   const [logOpen, setLogOpen] = useState(false);
   const [showList, setShowList] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const logged = useLiveQuery(
+    () => (s.kind === 'run' ? db.runs.where('weekIndex').equals(weekIndexForDate(s.date)).filter((r) => r.plannedKey === s.key).first() : undefined),
+    [s.date, s.key, s.kind],
+  );
   const isGym = s.kind === 'gym';
 
   async function start() {
@@ -75,6 +83,16 @@ export function SessionCard({
           )}
         </div>
       </div>
+      {logged && (
+        <button onClick={() => setEditOpen(true)} className={`mt-3 w-full rounded-xl px-3 py-2 text-left text-sm ${logged.needsTestTime ? 'bg-warn/15 text-warn' : 'bg-panel2'}`}>
+          <div>
+            {logged.source === 'intervals' ? '⌚ ' : ''}
+            {num(logged.distanceKm, 2)} km · {formatDuration(logged.durationSec)} · {formatPace(logged.durationSec / logged.distanceKm)}/km
+            {logged.avgHr ? ` · ${logged.avgHr} bpm` : ''}
+          </div>
+          <div className="text-xs text-mute">{logged.needsTestTime ? 'Tryck och fyll i testtiden' : 'Tryck för att ändra'}</div>
+        </button>
+      )}
       {!compact && !done && (
         <div className="mt-3">
           {isGym ? (
@@ -89,6 +107,7 @@ export function SessionCard({
         </div>
       )}
       {s.run && <RunLogSheet open={logOpen} onClose={() => setLogOpen(false)} planned={s} settings={settings} />}
+      {s.run && logged && <RunLogSheet open={editOpen} onClose={() => setEditOpen(false)} planned={s} settings={settings} existing={logged} />}
     </Card>
   );
 }

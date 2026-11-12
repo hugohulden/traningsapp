@@ -7,6 +7,7 @@ import { StatsScreen } from './screens/Stats';
 import { BodyScreen } from './screens/Body';
 import { SettingsScreen } from './screens/Settings';
 import type { AppSettings } from './plan/settings';
+import { syncIntervals } from './sync/sync';
 
 export type Tab = 'idag' | 'plan' | 'stat' | 'kropp' | 'mer';
 export type Screen = { name: 'gym'; id: string } | { name: 'week'; index: number };
@@ -38,7 +39,17 @@ export default function App() {
   const settings = useSettings();
 
   useEffect(() => {
-    initApp().then(() => setReady(true));
+    initApp().then(() => {
+      setReady(true);
+      void syncIntervals();
+    });
+    const vis = () => document.visibilityState === 'visible' && void syncIntervals();
+    document.addEventListener('visibilitychange', vis);
+    window.addEventListener('online', vis);
+    return () => {
+      document.removeEventListener('visibilitychange', vis);
+      window.removeEventListener('online', vis);
+    };
   }, []);
 
   useEffect(() => {

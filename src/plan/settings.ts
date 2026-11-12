@@ -34,6 +34,13 @@ export interface AppSettings {
   lastBackupAt: string | null;
   firstUseAt: string | null;
   soundOn: boolean;
+  /** Automatisk import från Intervals.icu (Garmin). */
+  intervalsApiKey: string;
+  intervalsAthleteId: string;
+  intervalsProxyUrl: string;
+  lastSyncAt: string | null;
+  lastSyncMessage: string | null;
+  lastSyncError: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -57,4 +64,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lastBackupAt: null,
   firstUseAt: null,
   soundOn: true,
+  intervalsApiKey: '',
+  intervalsAthleteId: '0',
+  intervalsProxyUrl: '',
+  lastSyncAt: null,
+  lastSyncMessage: null,
+  lastSyncError: false,
 };

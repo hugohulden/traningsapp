@@ -44,7 +44,18 @@ Uppdateringar laddas automatiskt nästa gång appen öppnas med nät.
 Mer → Exportera. På iPhone öppnas delningsmenyn: välj **Spara i Filer** (t.ex. iCloud Drive).
 Appen påminner var 14:e dag. Import ersätter all data med filens innehåll.
 
-## Garmin (senare)
+## Löppass från klockan (Garmin → Intervals.icu → appen)
 
-Löppass har fälten `source`, `externalId`, `activityType`, `maxHr`, `elevationGainM`, `cadence`
-för att kunna importera Garmin Connects CSV-export i en senare version.
+1. Skapa ett gratis konto på [intervals.icu](https://intervals.icu) och koppla Garmin Connect (Settings → Connections).
+2. Intervals.icu → Settings → Developer Settings → skapa en API-nyckel.
+3. I appen: **Mer → Löppass från klockan** → klistra in nyckeln → **Spara och synka**.
+
+Appen hämtar nya löppass när den öppnas (högst var 10:e minut, eller med **Synka** på Idag),
+kopplar dem till rätt planerat pass (samma dag, annars närmaste ogjorda pass inom ±2 dagar)
+och slår ihop dem med pass du redan loggat för hand. Testlopp importeras med hela passets
+tid, så appen ber dig fylla i själva 5/10 km-tiden innan tröskelfarten uppdateras.
+
+Om webbläsaren blockerar anropet (CORS) finns en liten gratis mellanserver i
+`proxy/intervals-proxy.js` (Cloudflare Worker). Lägg dess adress i fältet *Mellanserver*.
+
+Nyckeln sparas bara i telefonen och följer inte med i backupfilen.

@@ -11,6 +11,7 @@ import { formatPace, num, parseDuration, parseNum } from '../lib/format';
 import { zoneHr, zoneName, zoneText } from '../engine/running';
 import { ZONES } from '../plan/config';
 import { Button, Card, Field, Header, Sheet, inputCls } from '../ui/ui';
+import { syncIntervals } from '../sync/sync';
 
 export async function exportBackupFile() {
   const data = await exportAll(db);
@@ -123,6 +124,8 @@ export function SettingsScreen() {
           {msg && <div className="mt-2 text-sm text-accent">{msg}</div>}
           <div className="mt-2 text-xs text-mute">På iPhone: välj ”Spara i Filer” (t.ex. iCloud Drive) när delningsmenyn öppnas.</div>
         </Card>
+
+        <GarminSync />
 
         <Card>
           <div className="font-semibold mb-3">Löpning</div>
@@ -284,6 +287,62 @@ function TestMode() {
           Avsluta testläge ({formatShort(testDate()!)})
         </Button>
       )}
+    </Card>
+  );
+}
+
+function GarminSync() {
+  const s = useAppSettings();
+  const [key, setKey] = useState(s.intervalsApiKey);
+  const [athlete, setAthlete] = useState(s.intervalsAthleteId);
+  const [proxy, setProxy] = useState(s.intervalsProxyUrl);
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const dirty = key !== s.intervalsApiKey || athlete !== s.intervalsAthleteId || proxy !== s.intervalsProxyUrl;
+
+  async function saveAndSync() {
+    setBusy(true);
+    setStatus('Hämtar…');
+    await saveSettings({ intervalsApiKey: key.trim(), intervalsAthleteId: athlete.trim() || '0', intervalsProxyUrl: proxy.trim(), lastSyncAt: dirty ? null : s.lastSyncAt });
+    const r = await syncIntervals(true);
+    setStatus(r.error ? `⚠ ${r.message}` : `✓ ${r.message}`);
+    setBusy(false);
+  }
+
+  return (
+    <Card>
+      <div className="font-semibold mb-1">⌚ Löppass från klockan</div>
+      <div className="text-sm text-mute mb-3">
+        Garmin → Intervals.icu → appen. Nya löppass hämtas automatiskt när du öppnar appen och kopplas till rätt pass i planen.
+      </div>
+      <ol className="list-decimal pl-5 text-sm text-mute space-y-1 mb-3">
+        <li>Skapa ett gratis konto på intervals.icu och koppla Garmin Connect (Settings → Connections).</li>
+        <li>Intervals.icu → Settings → Developer Settings → skapa API-nyckel.</li>
+        <li>Klistra in nyckeln här och tryck Spara och synka.</li>
+      </ol>
+      <div className="space-y-3">
+        <Field label="API-nyckel">
+          <input className={inputCls} type="password" autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} />
+        </Field>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Atlet-id" hint="0 = ditt konto">
+            <input className={inputCls} value={athlete} onChange={(e) => setAthlete(e.target.value)} />
+          </Field>
+          <Field label="Mellanserver (valfri)" hint="Bara om direkt anrop blockeras">
+            <input className={`${inputCls} text-sm`} placeholder="https://…workers.dev" value={proxy} onChange={(e) => setProxy(e.target.value)} />
+          </Field>
+        </div>
+        <Button className="w-full" disabled={!key.trim() || busy} onClick={saveAndSync}>
+          {dirty ? 'Spara och synka' : 'Synka nu'}
+        </Button>
+        {status && <div className={`text-sm ${status.startsWith('⚠') ? 'text-warn' : 'text-accent'}`}>{status}</div>}
+        {!status && s.lastSyncAt && (
+          <div className="text-xs text-mute">
+            Senast: {new Date(s.lastSyncAt).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })} · {s.lastSyncMessage}
+          </div>
+        )}
+        <div className="text-xs text-mute">Nyckeln sparas bara i telefonen och följer inte med i backupfilen. Testlopp importeras också, men du fyller i själva testtiden.</div>
+      </div>
     </Card>
   );
 }

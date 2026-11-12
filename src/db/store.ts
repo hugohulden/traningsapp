@@ -261,9 +261,11 @@ export function exerciseName(id: string): string {
 export async function saveRun(run: Omit<RunRec, 'id' | 'createdAt' | 'weekIndex'> & { id?: string }): Promise<{ newThreshold?: number }> {
   const rec: RunRec = { ...run, id: run.id ?? uid(), createdAt: Date.now(), weekIndex: weekIndexForDate(run.date) };
   await db.runs.put(rec);
-  if ((rec.test === '5k' || rec.test === '10k') && rec.durationSec > 0) {
-    const T = thresholdFromTest(rec.test, rec.durationSec);
-    await db.thresholds.add({ date: rec.date, thresholdSec: T, source: rec.test, testTimeSec: rec.durationSec });
+  const testSec = rec.testTimeSec ?? (rec.needsTestTime ? 0 : rec.durationSec);
+  if ((rec.test === '5k' || rec.test === '10k') && testSec > 0) {
+    const T = thresholdFromTest(rec.test, testSec);
+    await db.thresholds.where('date').equals(rec.date).filter((t) => t.source === rec.test).delete();
+    await db.thresholds.add({ date: rec.date, thresholdSec: T, source: rec.test, testTimeSec: testSec });
     await saveSettings({ thresholdSec: T });
     return { newThreshold: T };
   }

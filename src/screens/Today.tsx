@@ -16,6 +16,7 @@ import { volumeSuggestion, type HistoryEntry } from '../engine/progression';
 import { getExercise } from '../engine/gymPlan';
 import type { GymTemplateId, MuscleGroup } from '../plan/types';
 import { exportBackupFile } from './Settings';
+import { syncIntervals } from '../sync/sync';
 
 export function TodayScreen() {
   const settings = useAppSettings();
@@ -57,6 +58,7 @@ export function TodayScreen() {
           </Card>
         )}
 
+        <SyncStatus />
         <BackupReminder />
         <RestartPrompt idx={idx} day={day} />
         <VolumePrompt idx={idx} phase={week.phase} />
@@ -277,5 +279,32 @@ function QuickBody({ day }: { day: string }) {
         </Button>
       </div>
     </Card>
+  );
+}
+
+function SyncStatus() {
+  const s = useAppSettings();
+  const [busy, setBusy] = useState(false);
+  if (!s.intervalsApiKey) return null;
+  const when = s.lastSyncAt ? new Date(s.lastSyncAt) : null;
+  const ago = when ? Math.round((Date.now() - when.getTime()) / 60000) : null;
+  const err = s.lastSyncError;
+  return (
+    <div className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${err ? 'bg-warn/10 text-warn' : 'bg-panel text-mute'}`}>
+      <span className="flex-1 min-w-0">
+        ⌚ {busy ? 'Hämtar pass från klockan…' : err ? s.lastSyncMessage : `Synkat ${ago == null ? '–' : ago < 1 ? 'nyss' : ago < 60 ? `för ${ago} min sedan` : `för ${Math.round(ago / 60)} h sedan`}${s.lastSyncMessage ? ` · ${s.lastSyncMessage.toLowerCase()}` : ''}`}
+      </span>
+      <button
+        className="h-9 rounded-lg bg-panel2 px-3 text-ink shrink-0"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          await syncIntervals(true);
+          setBusy(false);
+        }}
+      >
+        Synka
+      </button>
+    </div>
   );
 }

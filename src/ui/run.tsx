@@ -61,6 +61,7 @@ function RunForm({ planned, settings, existing, onDone }: { planned?: PlannedSes
   const [ivPace, setIvPace] = useState(existing?.intervalPaceSec ? formatPace(existing.intervalPaceSec) : '');
   const [category, setCategory] = useState<RunCategory>(existing?.category ?? r?.category ?? 'lugn');
   const [test, setTest] = useState<'' | '5k' | '10k' | 'race'>(existing?.test ?? (r?.test ? r.test : r?.category === 'lopp' ? 'race' : ''));
+  const [testTime, setTestTime] = useState(existing?.testTimeSec ? formatDuration(existing.testTimeSec) : '');
   const [result, setResult] = useState<string | null>(null);
   const [err, setErr] = useState('');
 
@@ -73,6 +74,9 @@ function RunForm({ planned, settings, existing, onDone }: { planned?: PlannedSes
     if (!kmN || kmN <= 0) return setErr('Fyll i distans.');
     if (!sec || sec <= 0) return setErr('Fyll i tid (t.ex. 48:30 eller 1:31:05).');
     const ivp = ivPace ? parseDuration(ivPace) : null;
+    const isTestDist = test === '5k' || test === '10k';
+    const tts = testTime ? parseDuration(testTime) : null;
+    if (isTestDist && existing?.needsTestTime && !tts) return setErr(`Fyll i tiden för själva ${test === '5k' ? '5 km' : '10 km'}.`);
     const res = await saveRun({
       id: existing?.id,
       date,
@@ -89,10 +93,19 @@ function RunForm({ planned, settings, existing, onDone }: { planned?: PlannedSes
       plannedWorkKm: existing?.plannedWorkKm ?? r?.workKm,
       plannedKm: existing?.plannedKm ?? r?.km,
       source: existing?.source ?? 'manuell',
+      externalId: existing?.externalId,
+      activityType: existing?.activityType,
+      maxHr: existing?.maxHr,
+      elevationGainM: existing?.elevationGainM,
+      cadence: existing?.cadence,
+      name: existing?.name,
+      testTimeSec: isTestDist ? (tts ?? undefined) : undefined,
+      needsTestTime: undefined,
     });
     if (res.newThreshold) {
       const t = test as '5k' | '10k';
-      setResult(`Ny tröskelfart T = ${formatPace(res.newThreshold)}/km. Halvmaraprognos ${formatDuration(hmPrediction(t, sec))}. Fartzonerna är uppdaterade.`);
+      const ts = (testTime ? parseDuration(testTime) : null) ?? sec;
+      setResult(`Ny tröskelfart T = ${formatPace(res.newThreshold)}/km. Halvmaraprognos ${formatDuration(hmPrediction(t, ts))}. Fartzonerna är uppdaterade.`);
     } else onDone();
   }
 
@@ -161,7 +174,7 @@ function RunForm({ planned, settings, existing, onDone }: { planned?: PlannedSes
           </select>
         </Field>
       )}
-      {(category === 'test' || category === 'lopp') && (
+      {(category === 'test' || category === 'lopp') && !r?.test && (
         <Field label="Testdistans (uppdaterar tröskelfarten)">
           <Segmented
             value={test}
@@ -175,6 +188,12 @@ function RunForm({ planned, settings, existing, onDone }: { planned?: PlannedSes
           />
         </Field>
       )}
+      {(test === '5k' || test === '10k') && (
+        <Field label={`Testtid för själva ${test === '5k' ? '5 km' : '10 km'}`} hint="Uppdaterar tröskelfarten. Lämna tomt om hela passet var testet.">
+          <input className={`${inputCls} ${existing?.needsTestTime ? 'border-warn' : ''}`} inputMode="decimal" placeholder="mm:ss" value={testTime} onChange={(e) => setTestTime(e.target.value)} />
+        </Field>
+      )}
+      {existing?.source === 'intervals' && <div className="text-xs text-mute">⌚ Importerat från klockan via Intervals.icu{existing.name ? ` · ${existing.name}` : ''}</div>}
       <Field label="Anteckning">
         <textarea className={`${inputCls} min-h-20 py-2 text-base`} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
