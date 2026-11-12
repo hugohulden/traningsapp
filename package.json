@@ -7,7 +7,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b",
-    "build:preview": "tsc -b && BASE_PATH=./ VITE_NO_SW=1 vite build --outDir dist-artifact"
+    "build:preview": "tsc -b && BASE_PATH=./ VITE_NO_SW=1 VITE_SEED=1 vite build --outDir dist-artifact"
   },
   "dependencies": {
     "date-fns": "^3.6.0",

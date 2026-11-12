@@ -54,6 +54,7 @@ describe('koppling till planen', () => {
     const r = toImportedRun(act({}))!;
     expect(isDuplicateOf(r, [{ date: '2026-11-17', distanceKm: 8 }])).toBeTruthy();
     expect(isDuplicateOf(r, [{ date: '2026-11-17', distanceKm: 12 }])).toBeFalsy();
-    expect(isDuplicateOf(r, [{ date: '2026-11-17', distanceKm: 8, externalId: 'x' }])).toBeFalsy();
+    expect(isDuplicateOf(r, [{ date: '2026-11-17', distanceKm: 8, externalId: 'intervals:x' }])).toBeFalsy();
+    expect(isDuplicateOf(r, [{ date: '2026-11-17', distanceKm: 8, externalId: 'garmin:123' }])).toBeTruthy();
   });
 });

@@ -3,11 +3,11 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Bar, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAppSettings } from '../App';
 import { db } from '../db/db';
-import { doneSets, historyFromSessions, exerciseName } from '../db/store';
+import { historyFromSessions, exerciseName } from '../db/store';
 import { getExercise } from '../engine/gymPlan';
 import { epley, bestSet, workWeight } from '../engine/progression';
 import { hmPrediction, paceOf } from '../engine/running';
-import { PLAN_LENGTH, weekIndexForDate } from '../engine/planGenerator';
+import { PLAN_LENGTH, weekIndexForDate, weekStart } from '../engine/planGenerator';
 import { RUN_DEFAULTS } from '../plan/config';
 import { formatShort, mondayOf } from '../lib/dates';
 import { formatDuration, formatPace, num } from '../lib/format';
@@ -67,7 +67,7 @@ function GymStats() {
       const g = getExercise(e.exerciseId)?.muscleGroup;
       if (!g) continue;
       const arr = groups.get(g) ?? [0, 0, 0, 0];
-      arr[wi] += doneSets(e).length;
+      arr[wi] += e.sets.filter((x) => x.done).length;
       groups.set(g, arr);
     }
   }
@@ -88,7 +88,16 @@ function GymStats() {
     .filter((x): x is NonNullable<typeof x> => !!x);
 
   if (!sessions) return null;
-  if (!ids.length) return <Card>Logga ditt första gympass så dyker graferna upp här.</Card>;
+  if (!ids.length)
+    return (
+      <>
+        <Card>
+          <div className="font-semibold">{sessions.length} gympass loggade</div>
+          <div className="text-sm text-mute mt-1">Graferna för vikt och 1RM dyker upp när du loggat ett pass med vikter i appen (klockan sparar inte vikter).</div>
+        </Card>
+        <SetTable weeks={weeks} groups={groups} />
+      </>
+    );
 
   const metricLabel = { vikt: 'Bästa setets vikt (kg)', e1rm: 'Estimerad 1RM (kg)', volym: 'Total volym (kg)' }[metric];
 
@@ -112,34 +121,7 @@ function GymStats() {
         </LineChart>
       </ChartBox>
 
-      <Card>
-        <div className="font-semibold mb-2">Set per muskelgrupp och vecka</div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-mute text-xs">
-              <th className="text-left font-normal">Muskelgrupp</th>
-              {weeks.map((w) => (
-                <th key={w} className="text-right font-normal">
-                  {formatShort(w)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {[...groups.entries()].map(([g, arr]) => (
-              <tr key={g} className="border-t border-line">
-                <td className="py-1.5">{g}</td>
-                {arr.map((n, i) => (
-                  <td key={i} className={`text-right ${i === 3 ? 'font-bold' : ''}`}>
-                    {n || '–'}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {groups.size === 0 && <div className="text-sm text-mute">Inga set de senaste fyra veckorna.</div>}
-      </Card>
+      <SetTable weeks={weeks} groups={groups} />
 
       <Card>
         <div className="font-semibold mb-2">Personbästa (estimerad 1RM)</div>
@@ -171,9 +153,13 @@ function RunStats() {
   const day = useToday();
   if (!runs || !thresholds) return null;
 
-  const weekly = Array.from({ length: PLAN_LENGTH }, (_, i) => {
-    const w = weekPlan(i, settings);
+  // Veckor före planstart (historik) visas med datum, planveckor som v1–v27.
+  const first = Math.min(0, ...runs.map((r) => r.weekIndex));
+  const weekly = Array.from({ length: PLAN_LENGTH - first }, (_, k) => {
+    const i = first + k;
     const km = runs.filter((r) => r.weekIndex === i).reduce((a, r) => a + r.distanceKm, 0);
+    if (i < 0) return { v: formatShort(weekStart(i)), sprunget: Math.round(km * 10) / 10, plan: null as number | null };
+    const w = weekPlan(i, settings);
     return { v: `v${i + 1}`, sprunget: Math.round(km * 10) / 10, plan: w.kmTarget ?? Math.round(w.kmPlanned) };
   });
   const longest = runs.reduce<(typeof runs)[number] | null>((a, r) => (!a || r.distanceKm > a.distanceKm ? r : a), null);
@@ -293,5 +279,38 @@ function RunStats() {
         <div className="text-[11px] text-mute mt-2">Vecka {Math.max(1, weekIndexForDate(day) + 1)} av {PLAN_LENGTH}</div>
       </Card>
     </>
+  );
+}
+
+function SetTable({ weeks, groups }: { weeks: string[]; groups: Map<MuscleGroup, number[]> }) {
+  return (
+    <Card>
+        <div className="font-semibold mb-2">Set per muskelgrupp och vecka</div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-mute text-xs">
+              <th className="text-left font-normal">Muskelgrupp</th>
+              {weeks.map((w) => (
+                <th key={w} className="text-right font-normal">
+                  {formatShort(w)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[...groups.entries()].map(([g, arr]) => (
+              <tr key={g} className="border-t border-line">
+                <td className="py-1.5">{g}</td>
+                {arr.map((n, i) => (
+                  <td key={i} className={`text-right ${i === 3 ? 'font-bold' : ''}`}>
+                    {n || '–'}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {groups.size === 0 && <div className="text-sm text-mute">Inga set de senaste fyra veckorna.</div>}
+    </Card>
   );
 }

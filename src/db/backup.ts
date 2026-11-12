@@ -44,3 +44,30 @@ export async function importAll(db: AppDB, file: unknown): Promise<void> {
     if (keepKey && imp && !imp.intervalsApiKey) await db.table('kv').put({ key: 'settings', value: { ...imp, intervalsApiKey: keepKey } });
   });
 }
+
+export const HISTORY_FORMAT = 'traningsapp-historik';
+
+/** Lägger till historik (löppass, gympass, invägningar) utan att radera något. Samma fil kan läsas in flera gånger. */
+export async function mergeHistory(db: AppDB, file: unknown): Promise<{ runs: number; gym: number }> {
+  const f = file as { format?: string; data?: Record<string, unknown[]> };
+  if (!f || f.format !== HISTORY_FORMAT || typeof f.data !== 'object') throw new Error('Filen är inte en historikfil.');
+  const runs = (f.data.runs ?? []) as { id: string; externalId?: string }[];
+  const gym = (f.data.gymSessions ?? []) as { id: string }[];
+  const weighs = (f.data.weighIns ?? []) as { date: string }[];
+  let r = 0;
+  let g = 0;
+  await db.transaction('rw', db.runs, db.gymSessions, db.weighIns, async () => {
+    for (const run of runs) {
+      if (await db.runs.get(run.id)) continue;
+      await db.runs.put(run as never);
+      r++;
+    }
+    for (const s of gym) {
+      if (await db.gymSessions.get(s.id)) continue;
+      await db.gymSessions.put(s as never);
+      g++;
+    }
+    for (const w of weighs) if (!(await db.weighIns.get(w.date))) await db.weighIns.put(w as never);
+  });
+  return { runs: r, gym: g };
+}

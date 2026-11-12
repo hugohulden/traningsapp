@@ -97,9 +97,9 @@ export function guessCategory(run: ImportedRun): RunCategory {
   return run.distanceKm >= 15 ? 'lang' : 'lugn';
 }
 
-/** Samma pass redan loggat manuellt (samma dag, distans inom 10 %)? */
+/** Samma pass redan loggat för hand eller inläst från Garmin-historik (samma dag, distans inom 10 %)? */
 export function isDuplicateOf(run: ImportedRun, existing: { date: string; distanceKm: number; externalId?: string }[]) {
-  return existing.find((e) => !e.externalId && e.date === run.date && Math.abs(e.distanceKm - run.distanceKm) <= Math.max(0.3, run.distanceKm * 0.1));
+  return existing.find((e) => !e.externalId?.startsWith('intervals:') && e.date === run.date && Math.abs(e.distanceKm - run.distanceKm) <= Math.max(0.3, run.distanceKm * 0.1));
 }
 
 // ---------------------------------------------------------------------------

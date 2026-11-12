@@ -33,3 +33,22 @@ describe('export/import', () => {
     await expect(importAll(new AppDB('test-c'), { hej: 1 })).rejects.toThrow();
   });
 });
+
+describe('historikimport', () => {
+  it('lägger till utan att radera och kan köras två gånger', async () => {
+    const { mergeHistory } = await import('./backup');
+    const d = new AppDB('test-h');
+    await d.runs.put({ id: 'egen', date: '2026-11-17', weekIndex: 0, plannedKey: 'easy', category: 'lugn', distanceKm: 8, durationSec: 2900, surface: 'ute', notes: '', source: 'manuell', createdAt: 1 });
+    const file = {
+      format: 'traningsapp-historik',
+      version: 1,
+      data: {
+        runs: [{ id: 'garmin-1', date: '2026-11-03', weekIndex: -2, plannedKey: null, category: 'lugn', distanceKm: 8.2, durationSec: 3280, surface: 'ute', notes: '', source: 'garmin', externalId: 'garmin:1', createdAt: 2 }],
+        gymSessions: [],
+      },
+    };
+    expect(await mergeHistory(d, file)).toEqual({ runs: 1, gym: 0 });
+    expect(await mergeHistory(d, file)).toEqual({ runs: 0, gym: 0 });
+    expect(await d.runs.count()).toBe(2);
+  });
+});

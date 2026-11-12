@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useAppSettings } from '../App';
 import { db } from '../db/db';
-import { exportAll, importAll } from '../db/backup';
+import { exportAll, importAll, mergeHistory, HISTORY_FORMAT } from '../db/backup';
 import { saveSettings, setThresholdManually, useCustomExercises } from '../db/store';
 import { allExercises, getExercise, stepKg } from '../engine/gymPlan';
 import { marathonLayout } from '../engine/planGenerator';
@@ -112,9 +112,15 @@ export function SettingsScreen() {
               const f = e.target.files?.[0];
               e.target.value = '';
               if (!f) return;
-              if (!confirm('Importen ersätter ALL data i appen med innehållet i filen. Fortsätta?')) return;
               try {
-                await importAll(db, JSON.parse(await f.text()));
+                const json = JSON.parse(await f.text());
+                if (json?.format === HISTORY_FORMAT) {
+                  const r = await mergeHistory(db, json);
+                  setMsg(`Historik inläst: ${r.runs} löppass och ${r.gym} gympass lades till.`);
+                  return;
+                }
+                if (!confirm('Importen ersätter ALL data i appen med innehållet i filen. Fortsätta?')) return;
+                await importAll(db, json);
                 setMsg('Importen är klar.');
               } catch (err) {
                 setMsg(`Importen misslyckades: ${(err as Error).message}`);

@@ -3,3 +3,5 @@ dist
 *.local
 .vite
 dist-artifact
+src/seed/*.json
+historik-*.json
