@@ -12,6 +12,7 @@ import { zoneHr, zoneName, zoneText } from '../engine/running';
 import { ZONES } from '../plan/config';
 import { Button, Card, Field, Header, Sheet, inputCls } from '../ui/ui';
 import { syncIntervals } from '../sync/sync';
+import { ask } from '../ui/confirm';
 
 export async function exportBackupFile() {
   const data = await exportAll(db);
@@ -119,7 +120,7 @@ export function SettingsScreen() {
                   setMsg(`Historik inläst: ${r.runs} löppass och ${r.gym} gympass lades till.`);
                   return;
                 }
-                if (!confirm('Importen ersätter ALL data i appen med innehållet i filen. Fortsätta?')) return;
+                if (!(await ask('Importen ersätter ALL data i appen med innehållet i filen. Fortsätta?', { ok: 'Ersätt', danger: true }))) return;
                 await importAll(db, json);
                 setMsg('Importen är klar.');
               } catch (err) {

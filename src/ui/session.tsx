@@ -30,6 +30,10 @@ export function SessionCard({
   const [logOpen, setLogOpen] = useState(false);
   const [showList, setShowList] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const loggedGym = useLiveQuery(
+    () => (s.kind === 'gym' ? db.gymSessions.where('weekIndex').equals(weekIndexForDate(s.date)).filter((g) => g.plannedKey === s.key && g.status === 'done').first() : undefined),
+    [s.date, s.key, s.kind],
+  );
   const logged = useLiveQuery(
     () => (s.kind === 'run' ? db.runs.where('weekIndex').equals(weekIndexForDate(s.date)).filter((r) => r.plannedKey === s.key).first() : undefined),
     [s.date, s.key, s.kind],
@@ -83,6 +87,14 @@ export function SessionCard({
           )}
         </div>
       </div>
+      {loggedGym && (
+        <button onClick={() => nav.push({ name: 'gym', id: loggedGym.id })} className="mt-3 w-full rounded-xl bg-panel2 px-3 py-2 text-left text-sm">
+          <div>
+            {loggedGym.exercises.reduce((a, e) => a + e.sets.filter((x) => x.done).length, 0)} set · {loggedGym.exercises.filter((e) => e.sets.some((x) => x.done)).length} övningar
+          </div>
+          <div className="text-xs text-mute">Tryck för att visa eller ändra</div>
+        </button>
+      )}
       {logged && (
         <button onClick={() => setEditOpen(true)} className={`mt-3 w-full rounded-xl px-3 py-2 text-left text-sm ${logged.needsTestTime ? 'bg-warn/15 text-warn' : 'bg-panel2'}`}>
           <div>

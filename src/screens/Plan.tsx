@@ -191,9 +191,9 @@ export function WeekScreen({ index }: { index: number }) {
           <Card>
             <div className="font-semibold mb-1">Övriga pass</div>
             {unplannedGym.map((g) => (
-              <div key={g.id} className="text-sm">
-                {formatShort(g.date)} · {g.title}
-              </div>
+              <button key={g.id} onClick={() => nav.push({ name: 'gym', id: g.id })} className="block w-full text-left text-sm py-1 underline-offset-2 active:underline">
+                {formatShort(g.date)} · {g.title} ›
+              </button>
             ))}
             {unplannedRuns.map((r) => (
               <div key={r.id} className="text-sm">

@@ -8,6 +8,7 @@ import { BodyScreen } from './screens/Body';
 import { SettingsScreen } from './screens/Settings';
 import type { AppSettings } from './plan/settings';
 import { syncIntervals } from './sync/sync';
+import { ConfirmHost } from './ui/confirm';
 
 export type Tab = 'idag' | 'plan' | 'stat' | 'kropp' | 'mer';
 export type Screen = { name: 'gym'; id: string } | { name: 'week'; index: number };
@@ -100,6 +101,7 @@ export default function App() {
             </nav>
           </div>
         )}
+        <ConfirmHost />
       </NavCtx.Provider>
     </SettingsCtx.Provider>
   );

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Bar, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
-import { useAppSettings } from '../App';
-import { db } from '../db/db';
+import { useAppSettings, useNav } from '../App';
+import { db, type GymSessionRec } from '../db/db';
 import { historyFromSessions, exerciseName } from '../db/store';
 import { getExercise } from '../engine/gymPlan';
 import { epley, bestSet, workWeight } from '../engine/progression';
@@ -96,6 +96,7 @@ function GymStats() {
           <div className="text-sm text-mute mt-1">Graferna för vikt och 1RM dyker upp när du loggat ett pass med vikter i appen (klockan sparar inte vikter).</div>
         </Card>
         <SetTable weeks={weeks} groups={groups} />
+        <RecentGym sessions={sessions} />
       </>
     );
 
@@ -142,6 +143,7 @@ function GymStats() {
             ))}
         </div>
       </Card>
+      <RecentGym sessions={sessions} />
     </>
   );
 }
@@ -311,6 +313,31 @@ function SetTable({ weeks, groups }: { weeks: string[]; groups: Map<MuscleGroup,
           </tbody>
         </table>
         {groups.size === 0 && <div className="text-sm text-mute">Inga set de senaste fyra veckorna.</div>}
+    </Card>
+  );
+}
+
+function RecentGym({ sessions }: { sessions: GymSessionRec[] }) {
+  const nav = useNav();
+  const list = [...sessions].sort((a, b) => b.date.localeCompare(a.date) || b.startedAt - a.startedAt).slice(0, 20);
+  return (
+    <Card>
+      <div className="font-semibold mb-1">Senaste gympass</div>
+      <div className="text-xs text-mute mb-2">Tryck för att visa eller ändra</div>
+      <div className="divide-y divide-line">
+        {list.map((g) => {
+          const sets = g.exercises.reduce((a, e) => a + e.sets.filter((x) => x.done).length, 0);
+          return (
+            <button key={g.id} onClick={() => nav.push({ name: 'gym', id: g.id })} className="flex w-full justify-between py-2.5 text-left text-sm active:bg-panel2">
+              <span className="min-w-0 truncate pr-2">
+                {formatShort(g.date)} · {g.title}
+              </span>
+              <span className="shrink-0 text-mute">{sets ? `${sets} set` : '–'} ›</span>
+            </button>
+          );
+        })}
+      </div>
+      {list.length === 0 && <div className="text-sm text-mute">Inga gympass än.</div>}
     </Card>
   );
 }

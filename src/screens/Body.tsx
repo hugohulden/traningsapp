@@ -9,6 +9,7 @@ import { num, parseNum } from '../lib/format';
 import { Button, Card, Field, Header, Stat, inputCls } from '../ui/ui';
 import { C, ChartBox, LegendItem, axisProps, tooltipProps } from '../ui/charts';
 import { useToday } from '../ui/hooks';
+import { ask } from '../ui/confirm';
 
 export function BodyScreen() {
   const day = useToday();
@@ -151,7 +152,7 @@ export function BodyScreen() {
                   <span>{formatShort(w.date)}</span>
                   <span className="flex items-center gap-3">
                     {num(w.kg)} kg
-                    <button className="text-mute text-xs" onClick={() => confirm('Ta bort invägningen?') && db.weighIns.delete(w.date)}>
+                    <button className="text-mute text-xs" onClick={async () => (await ask('Ta bort invägningen?', { ok: 'Ta bort', danger: true })) && db.weighIns.delete(w.date)}>
                       ta bort
                     </button>
                   </span>

@@ -18,10 +18,13 @@ import {
 import { allExercises, getExercise, stepKg } from '../engine/gymPlan';
 import { epley, type HistoryEntry } from '../engine/progression';
 import { num, parseNum, formatDuration } from '../lib/format';
+import { formatShort } from '../lib/dates';
 import { Badge, Button, Card, Field, Header, Segmented, Sheet, inputCls } from '../ui/ui';
 import { unlockAudio, useRestTimer, useWakeLock } from '../ui/restTimer';
 import type { EquipmentKind, MuscleGroup } from '../plan/types';
 import { GYM_TEMPLATES } from '../plan/config';
+import { ask } from '../ui/confirm';
+import { weekIndexForDate } from '../engine/planGenerator';
 
 export function GymSessionScreen({ id }: { id: string }) {
   const nav = useNav();
@@ -51,14 +54,16 @@ export function GymSessionScreen({ id }: { id: string }) {
 
   if (!rec) return <div className="p-6 text-mute">Laddar pass…</div>;
 
-  if (summary) return <Summary rec={rec} lines={summary} onClose={() => nav.pop()} />;
+  if (summary) return <Summary rec={rec} lines={summary} onClose={() => nav.pop()} onEdit={() => setSummary(null)} />;
+
+  const editing = rec.status === 'done';
 
   const wellness = rec.exercises.some((e) => e.target.wellnessNotice);
   const undone = rec.exercises.filter((e) => !e.skipped).reduce((a, e) => a + e.sets.filter((s) => !s.done).length, 0);
   const elapsed = Math.floor((Date.now() - rec.startedAt) / 1000);
 
+  // Avsluta när du vill: bara avbockade set sparas som gjorda.
   async function finish() {
-    if (undone > 0 && !confirm(`${undone} set är inte avbockade. Avsluta passet ändå?`)) return;
     timer.stop();
     const done = await finishGymSession(rec!);
     setRec(done);
@@ -82,6 +87,10 @@ export function GymSessionScreen({ id }: { id: string }) {
       return;
     }
     s.done = true;
+    if (editing) {
+      update(r);
+      return;
+    }
     if (!warm) {
       const ex = getExercise(e.exerciseId);
       const extra = ex?.bodyweight ? bodyKg : 0;
@@ -102,11 +111,17 @@ export function GymSessionScreen({ id }: { id: string }) {
       <Header
         title={rec.title}
         onBack={() => nav.pop()}
-        sub={`${formatDuration(elapsed - (elapsed % 60))} · ${rec.deload ? 'deload · ' : ''}sparas automatiskt`}
+        sub={editing ? `Sparat pass ${formatShort(rec.date)} · ändringar sparas direkt` : `${formatDuration(elapsed - (elapsed % 60))} · ${rec.deload ? 'deload · ' : ''}sparas automatiskt${undone ? ` · ${undone} set kvar` : ''}`}
         right={
-          <Button kind="primary" className="min-h-10 px-3 text-sm" onClick={finish}>
-            Avsluta
-          </Button>
+          editing ? (
+            <Button kind="primary" className="min-h-10 px-3 text-sm" onClick={() => nav.pop()}>
+              Klar
+            </Button>
+          ) : (
+            <Button kind="primary" className="min-h-10 px-3 text-sm" onClick={finish}>
+              Avsluta
+            </Button>
+          )
         }
       />
       <div className="space-y-4 p-3">
@@ -133,7 +148,12 @@ export function GymSessionScreen({ id }: { id: string }) {
         <Button kind="soft" className="w-full" onClick={() => setAddOpen(true)}>
           + Lägg till övning
         </Button>
-        <Card>
+        <Card className="space-y-3">
+          {editing && (
+            <Field label="Datum">
+              <input className={inputCls} type="date" value={rec.date} onChange={(ev) => ev.target.value && update({ ...rec, date: ev.target.value, weekIndex: weekIndexForDate(ev.target.value) })} />
+            </Field>
+          )}
           <Field label="Anteckning för passet">
             <textarea className={`${inputCls} min-h-20 py-2 text-base`} value={rec.notes} onChange={(ev) => update({ ...rec, notes: ev.target.value })} />
           </Field>
@@ -142,17 +162,17 @@ export function GymSessionScreen({ id }: { id: string }) {
           kind="danger"
           className="w-full"
           onClick={async () => {
-            if (!confirm('Slänga passet? Inget av det sparas.')) return;
+            if (!(await ask(editing ? 'Ta bort det sparade passet?' : 'Slänga passet? Inget av det sparas.', { ok: editing ? 'Ta bort' : 'Släng', danger: true }))) return;
             timer.stop();
             await deleteGymSession(rec.id);
             nav.pop();
           }}
         >
-          Släng pass
+          {editing ? 'Ta bort pass' : 'Släng pass'}
         </Button>
       </div>
 
-      <RestBar timer={timer} />
+      {!editing && <RestBar timer={timer} />}
 
       <ExercisePicker
         open={switchIdx != null}
@@ -162,7 +182,7 @@ export function GymSessionScreen({ id }: { id: string }) {
         onClose={() => setSwitchIdx(null)}
         onPick={async (exId) => {
           const idx = switchIdx!;
-          if (rec.exercises[idx].sets.some((s) => s.done) && !confirm('Avbockade set på den här övningen försvinner. Byta ändå?')) return;
+          if (rec.exercises[idx].sets.some((s) => s.done) && !(await ask('Avbockade set på den här övningen försvinner. Byta ändå?', { ok: 'Byt' }))) return;
           const r = await switchExercise(rec, idx, exId);
           setRec(r);
           setHist(await allHistory(id));
@@ -527,7 +547,7 @@ function ExercisePicker({
   );
 }
 
-function Summary({ rec, lines, onClose }: { rec: GymSessionRec; lines: SummaryLine[]; onClose: () => void }) {
+function Summary({ rec, lines, onClose, onEdit }: { rec: GymSessionRec; lines: SummaryLine[]; onClose: () => void; onEdit: () => void }) {
   const mins = rec.finishedAt ? Math.round((rec.finishedAt - rec.startedAt) / 60000) : 0;
   const sets = rec.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
   const improved = lines.filter((l) => l.improved).length;
@@ -553,9 +573,12 @@ function Summary({ rec, lines, onClose }: { rec: GymSessionRec; lines: SummaryLi
             <div className="text-xs text-mute">{l.nextReason}</div>
           </Card>
         ))}
-        <Button className="w-full" onClick={onClose}>
-          Klar
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button kind="soft" onClick={onEdit}>
+            Ändra passet
+          </Button>
+          <Button onClick={onClose}>Klar</Button>
+        </div>
       </div>
     </div>
   );
