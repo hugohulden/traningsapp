@@ -10,8 +10,8 @@ export function Card({ children, className = '', onClick }: { children: ReactNod
 
 type BtnKind = 'primary' | 'run' | 'ghost' | 'danger' | 'soft';
 const BTN: Record<BtnKind, string> = {
-  primary: 'bg-accent text-black font-semibold active:brightness-90',
-  run: 'bg-run text-black font-semibold active:brightness-90',
+  primary: 'bg-accent text-onaccent font-semibold active:brightness-90',
+  run: 'bg-run text-onaccent font-semibold active:brightness-90',
   ghost: 'bg-transparent border border-line text-ink active:bg-panel2',
   soft: 'bg-panel2 text-ink active:bg-line',
   danger: 'bg-bad/15 text-bad border border-bad/40 active:bg-bad/25',
@@ -124,7 +124,7 @@ export function Segmented<T extends string | number>({ value, options, onChange 
         <button
           key={String(o.value)}
           onClick={() => onChange(o.value)}
-          className={`flex-1 min-h-10 rounded-lg text-sm font-medium ${o.value === value ? 'bg-ink text-black' : 'text-mute'}`}
+          className={`flex-1 min-h-10 rounded-lg text-sm font-medium ${o.value === value ? 'bg-ink text-bg' : 'text-mute'}`}
         >
           {o.label}
         </button>

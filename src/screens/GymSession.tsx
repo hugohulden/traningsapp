@@ -409,7 +409,7 @@ function SetRow({
       )}
       <button
         onClick={onDone}
-        className={`h-12 w-full rounded-xl text-2xl font-bold ${s.done ? 'bg-accent text-black' : 'bg-panel2 border border-line text-mute'}`}
+        className={`h-12 w-full rounded-xl text-2xl font-bold ${s.done ? 'bg-accent text-onaccent' : 'bg-panel2 border border-line text-mute'}`}
         aria-label="Klart"
       >
         ✓
@@ -423,7 +423,7 @@ function RestBar({ timer }: { timer: ReturnType<typeof useRestTimer> }) {
   const r = Math.max(0, timer.remaining);
   const pct = timer.total ? (1 - r / timer.total) * 100 : 0;
   return (
-    <div className={`fixed bottom-0 inset-x-0 z-40 border-t safe-bottom ${timer.finished ? 'bg-accent text-black border-accent' : 'bg-panel border-line'}`}>
+    <div className={`fixed bottom-0 inset-x-0 z-40 border-t safe-bottom ${timer.finished ? 'bg-accent text-onaccent border-accent' : 'bg-panel border-line'}`}>
       <div className="h-1 bg-line">
         <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
       </div>

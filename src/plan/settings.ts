@@ -34,6 +34,8 @@ export interface AppSettings {
   lastBackupAt: string | null;
   firstUseAt: string | null;
   soundOn: boolean;
+  /** Färgtema: följ telefonen, eller alltid mörkt/ljust. */
+  theme: 'auto' | 'dark' | 'light';
   /** Automatisk import från Intervals.icu (Garmin). */
   intervalsApiKey: string;
   intervalsAthleteId: string;
@@ -64,6 +66,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lastBackupAt: null,
   firstUseAt: null,
   soundOn: true,
+  theme: 'auto',
   intervalsApiKey: '',
   intervalsAthleteId: '0',
   intervalsProxyUrl: '',

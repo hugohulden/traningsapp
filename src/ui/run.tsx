@@ -156,7 +156,7 @@ function RunForm({ planned, settings, existing, onDone }: { planned?: PlannedSes
       <Field label={`Ansträngning: ${rpe}/10`}>
         <div className="grid grid-cols-10 gap-1">
           {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-            <button key={n} onClick={() => setRpe(n)} className={`h-11 rounded-lg text-sm ${n === rpe ? 'bg-run text-black font-bold' : 'bg-panel2'}`}>
+            <button key={n} onClick={() => setRpe(n)} className={`h-11 rounded-lg text-sm ${n === rpe ? 'bg-run text-onaccent font-bold' : 'bg-panel2'}`}>
               {n}
             </button>
           ))}

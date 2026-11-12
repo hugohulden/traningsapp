@@ -9,6 +9,7 @@ import { SettingsScreen } from './screens/Settings';
 import type { AppSettings } from './plan/settings';
 import { syncIntervals } from './sync/sync';
 import { ConfirmHost } from './ui/confirm';
+import { useTheme } from './ui/theme';
 
 export type Tab = 'idag' | 'plan' | 'stat' | 'kropp' | 'mer';
 export type Screen = { name: 'gym'; id: string } | { name: 'week'; index: number };
@@ -38,6 +39,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('idag');
   const [stack, setStack] = useState<Screen[]>([]);
   const settings = useSettings();
+  const theme = useTheme(settings?.theme);
 
   useEffect(() => {
     initApp().then(() => {
@@ -79,7 +81,7 @@ export default function App() {
             <WeekScreen index={top.index} />
           )
         ) : (
-          <div className="pb-24">
+          <div className="pb-24" key={theme}>
             {tab === 'idag' && <TodayScreen />}
             {tab === 'plan' && <PlanScreen />}
             {tab === 'stat' && <StatsScreen />}

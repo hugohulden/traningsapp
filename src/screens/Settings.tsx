@@ -10,7 +10,7 @@ import { formatShort, today, testDate, setTestDate } from '../lib/dates';
 import { formatPace, num, parseDuration, parseNum } from '../lib/format';
 import { zoneHr, zoneName, zoneText } from '../engine/running';
 import { ZONES } from '../plan/config';
-import { Button, Card, Field, Header, Sheet, inputCls } from '../ui/ui';
+import { Button, Card, Field, Header, Segmented, Sheet, inputCls } from '../ui/ui';
 import { syncIntervals } from '../sync/sync';
 import { ask } from '../ui/confirm';
 
@@ -93,6 +93,19 @@ export function SettingsScreen() {
     <div>
       <Header title="Mer" sub="Inställningar, backup och installation" />
       <div className="p-4 space-y-4">
+        <Card>
+          <div className="font-semibold mb-3">Utseende</div>
+          <Segmented
+            value={s.theme ?? 'auto'}
+            onChange={(v) => saveSettings({ theme: v })}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'light', label: 'Ljust' },
+              { value: 'dark', label: 'Mörkt' },
+            ]}
+          />
+          <div className="mt-2 text-xs text-mute">Auto följer telefonens inställning för ljust/mörkt läge.</div>
+        </Card>
         <Card>
           <div className="font-semibold mb-3">Backup</div>
           <div className="text-sm text-mute mb-3">
@@ -178,7 +191,7 @@ export function SettingsScreen() {
           </div>
           <label className="mt-3 flex items-center justify-between min-h-12">
             <span>Ljud när vilan är slut</span>
-            <input type="checkbox" className="h-6 w-6 accent-[#a3e635]" checked={s.soundOn} onChange={(e) => saveSettings({ soundOn: e.target.checked })} />
+            <input type="checkbox" className="h-6 w-6 accent-[var(--color-accent)]" checked={s.soundOn} onChange={(e) => saveSettings({ soundOn: e.target.checked })} />
           </label>
           <div className="text-xs text-mute">iPhone kan inte vibrera från webbappar, så vilotimern piper och lyser grönt i stället.</div>
           <Button kind="soft" className="w-full mt-3" onClick={() => setStepsOpen(true)}>

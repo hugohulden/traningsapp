@@ -118,7 +118,7 @@ function GymStats() {
           <XAxis dataKey="date" {...axisProps} minTickGap={20} />
           <YAxis {...axisProps} domain={['auto', 'auto']} width={44} />
           <Tooltip {...tooltipProps} formatter={(v: number) => [`${num(v)} kg`, metricLabel]} />
-          <Line type="monotone" dataKey={metric} stroke={C.gym} strokeWidth={2} dot={{ r: 4, fill: C.gym, stroke: '#141a22', strokeWidth: 2 }} activeDot={{ r: 6 }} isAnimationActive={false} />
+          <Line type="monotone" dataKey={metric} stroke={C.gym} strokeWidth={2} dot={{ r: 4, fill: C.gym, stroke: C.panel, strokeWidth: 2 }} activeDot={{ r: 6 }} isAnimationActive={false} />
         </LineChart>
       </ChartBox>
 
@@ -234,7 +234,7 @@ function RunStats() {
             <Tooltip {...tooltipProps} formatter={(v: number) => [formatDuration(v), 'Prognos']} />
             <ReferenceLine y={5700} stroke={C.ref} strokeDasharray="4 3" label={{ value: '1:35', fill: C.axis, fontSize: 11, position: 'insideTopRight' }} />
             <ReferenceLine y={5400} stroke={C.ref} strokeDasharray="4 3" label={{ value: '1:30', fill: C.axis, fontSize: 11, position: 'insideTopRight' }} />
-            <Line dataKey="prognos" stroke={C.run} strokeWidth={2} dot={{ r: 4, fill: C.run, stroke: '#141a22', strokeWidth: 2 }} isAnimationActive={false} />
+            <Line dataKey="prognos" stroke={C.run} strokeWidth={2} dot={{ r: 4, fill: C.run, stroke: C.panel, strokeWidth: 2 }} isAnimationActive={false} />
           </LineChart>
         </ChartBox>
       )}
@@ -245,7 +245,7 @@ function RunStats() {
           <XAxis dataKey="date" {...axisProps} minTickGap={20} />
           <YAxis {...axisProps} reversed domain={['auto', 'auto']} tickFormatter={(v) => formatPace(v)} width={44} />
           <Tooltip {...tooltipProps} formatter={(v: number, n: string) => (n === 'tempo' ? [`${formatPace(v)}/km`, 'Tempo'] : [v, 'Puls'])} />
-          <Line dataKey="tempo" stroke={C.run} strokeWidth={2} dot={{ r: 4, fill: C.run, stroke: '#141a22', strokeWidth: 2 }} isAnimationActive={false} />
+          <Line dataKey="tempo" stroke={C.run} strokeWidth={2} dot={{ r: 4, fill: C.run, stroke: C.panel, strokeWidth: 2 }} isAnimationActive={false} />
         </LineChart>
       </ChartBox>
 
@@ -255,7 +255,7 @@ function RunStats() {
           <XAxis dataKey="date" {...axisProps} />
           <YAxis {...axisProps} reversed domain={['dataMin - 10', 'dataMax + 10']} tickFormatter={(v) => formatPace(v)} width={44} />
           <Tooltip {...tooltipProps} formatter={(v: number) => [`${formatPace(v)}/km`, 'T']} />
-          <Line type="stepAfter" dataKey="T" stroke={C.run} strokeWidth={2} dot={{ r: 4, fill: C.run, stroke: '#141a22', strokeWidth: 2 }} isAnimationActive={false} />
+          <Line type="stepAfter" dataKey="T" stroke={C.run} strokeWidth={2} dot={{ r: 4, fill: C.run, stroke: C.panel, strokeWidth: 2 }} isAnimationActive={false} />
         </LineChart>
       </ChartBox>
 

@@ -11,8 +11,25 @@
   --color-run: #38bdf8;
   --color-warn: #fbbf24;
   --color-bad: #f87171;
+  --color-onaccent: #000000;
   --font-sans: ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
 }
+
+:root[data-theme="light"] {
+  --color-bg: #f3f5f8;
+  --color-panel: #ffffff;
+  --color-panel2: #eaeef3;
+  --color-line: #d5dce5;
+  --color-ink: #0f172a;
+  --color-mute: #5b6677;
+  --color-accent: #4d7c0f;
+  --color-run: #0369a1;
+  --color-warn: #b45309;
+  --color-bad: #dc2626;
+  --color-onaccent: #ffffff;
+  color-scheme: light;
+}
+:root { color-scheme: dark; }
 
 html, body, #root { height: 100%; }
 body {

@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import './index.css';
+import { applyStoredTheme } from './ui/theme';
+
+applyStoredTheme();
 import { db } from './db/db';
 import { mergeHistory } from './db/backup';
 
