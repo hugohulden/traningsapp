@@ -14,8 +14,26 @@ export function toISO(d: Date): ISODate {
   return `${y}-${m}-${day}`;
 }
 
+/** Testdatum (Mer → Testläge) för att prova planen framåt i tiden. */
+export function testDate(): ISODate | null {
+  try {
+    return localStorage.getItem('testdatum');
+  } catch {
+    return null;
+  }
+}
+
+export function setTestDate(d: ISODate | null) {
+  try {
+    if (d) localStorage.setItem('testdatum', d);
+    else localStorage.removeItem('testdatum');
+  } catch {
+    /* ignoreras */
+  }
+}
+
 export function today(): ISODate {
-  return toISO(new Date());
+  return testDate() ?? toISO(new Date());
 }
 
 export function addDays(d: ISODate, n: number): ISODate {

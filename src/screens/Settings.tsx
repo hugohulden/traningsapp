@@ -6,7 +6,7 @@ import { saveSettings, setThresholdManually, useCustomExercises } from '../db/st
 import { allExercises, getExercise, stepKg } from '../engine/gymPlan';
 import { marathonLayout } from '../engine/planGenerator';
 import { GYM_TEMPLATES, MARATHON } from '../plan/config';
-import { formatShort, today } from '../lib/dates';
+import { formatShort, today, testDate, setTestDate } from '../lib/dates';
 import { formatPace, num, parseDuration, parseNum } from '../lib/format';
 import { zoneHr, zoneName, zoneText } from '../engine/running';
 import { ZONES } from '../plan/config';
@@ -204,6 +204,8 @@ export function SettingsScreen() {
           )}
         </Card>
 
+        <TestMode />
+
         <Card>
           <div className="font-semibold mb-2">Lägg appen på hemskärmen (iPhone)</div>
           <ol className="list-decimal pl-5 text-sm space-y-1 text-mute">
@@ -247,5 +249,41 @@ export function SettingsScreen() {
         </div>
       </Sheet>
     </div>
+  );
+}
+
+function TestMode() {
+  const [d, setD] = useState(testDate() ?? '');
+  const jump = (v: string | null) => {
+    setTestDate(v);
+    location.reload();
+  };
+  return (
+    <Card>
+      <div className="font-semibold mb-1">Testläge</div>
+      <div className="text-sm text-mute mb-3">Låtsas att det är ett annat datum för att prova planen. Loggade pass sparas med det datumet.</div>
+      <div className="grid grid-cols-2 gap-2">
+        <input className={inputCls} type="date" value={d} onChange={(e) => setD(e.target.value)} />
+        <Button kind="soft" disabled={!d} onClick={() => jump(d)}>
+          Använd datum
+        </Button>
+      </div>
+      <div className="grid grid-cols-3 gap-2 mt-2">
+        <Button kind="ghost" className="text-sm" onClick={() => jump('2026-11-16')}>
+          Vecka 1
+        </Button>
+        <Button kind="ghost" className="text-sm" onClick={() => jump('2027-03-22')}>
+          Vecka 19
+        </Button>
+        <Button kind="ghost" className="text-sm" onClick={() => jump('2027-05-17')}>
+          Tävlingsv.
+        </Button>
+      </div>
+      {testDate() && (
+        <Button kind="danger" className="w-full mt-2" onClick={() => jump(null)}>
+          Avsluta testläge ({formatShort(testDate()!)})
+        </Button>
+      )}
+    </Card>
   );
 }

@@ -5,7 +5,7 @@ import { db } from '../db/db';
 import { allHistory, saveSettings, startGymSession, useActiveGymSession } from '../db/store';
 import { weekIndexForDate, weeksToRace, PLAN_LENGTH, type PlannedSession } from '../engine/planGenerator';
 import { BACKUP_REMINDER_DAYS, BODY, GENERATOR, GYM_TEMPLATES, PLAN_START, RACE_NAME } from '../plan/config';
-import { diffDays, formatLong, formatShort, DAY_NAMES } from '../lib/dates';
+import { diffDays, formatLong, formatShort, DAY_NAMES, testDate } from '../lib/dates';
 import { num } from '../lib/format';
 import { Badge, Button, Card, Header, ProgressBar, Sheet, Stat } from '../ui/ui';
 import { SessionCard } from '../ui/session';
@@ -37,6 +37,7 @@ export function TodayScreen() {
         title="Idag"
         sub={
           <span>
+            {testDate() ? '🧪 ' : ''}
             {formatLong(day)} · {week.kind === 'plan' ? `${week.label} av ${PLAN_LENGTH}` : week.label}
           </span>
         }
