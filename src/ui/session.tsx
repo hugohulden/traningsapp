@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type { PlannedSession } from '../engine/planGenerator';
 import type { AppSettings } from '../plan/settings';
 import { Badge, Button, Card } from './ui';
-import { RunLogSheet, ZoneList } from './run';
+import { RunLogSheet } from './run';
+import { RunGuideView } from './runGuide';
 import { startGymSession, useActiveGymSession } from '../db/store';
 import { useNav } from '../App';
 import { DAY_NAMES, formatShort } from '../lib/dates';
@@ -64,7 +65,7 @@ export function SessionCard({
             <>
               <div className="mt-1 text-2xl font-bold">{num(s.run.km)} km</div>
               <div className="text-sm">{s.run.text}</div>
-              {!compact && <ZoneList run={s.run} settings={settings} />}
+              {!compact && <RunGuideView run={s.run} settings={settings} />}
             </>
           )}
           {isGym && (

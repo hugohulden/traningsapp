@@ -382,3 +382,30 @@ export const BODY = {
 };
 
 export const BACKUP_REMINDER_DAYS = 14;
+
+// ---------------------------------------------------------------------------
+// Förklaringar till löppassen (visas under "Så gör du" och "Vad betyder det?")
+// ---------------------------------------------------------------------------
+
+/** Hur varje fartzon ska kännas. */
+export const ZONE_FEEL: Record<ZoneKey, string> = {
+  lugn: 'Så lugnt att du kan prata i hela meningar. Det är pulsen som styr, inte farten – blir pulsen hög i backar eller motvind, sakta ner. Hellre för långsamt än för fort.',
+  steady: 'Kontrollerat och jämnt, lite ansträngande. Du kan säga korta meningar. Ungefär den fart du skulle kunna hålla i ett maraton.',
+  tempo: 'Komfortabelt hårt – jämn ansträngning, bara korta fraser går att säga. Något lugnare än tröskel.',
+  troskel: 'Hårt men kontrollerat. Du ska kunna hålla samma fart hela intervallen och känna att du hade orkat en till. Maxa inte – för fort gör passet sämre, inte bättre.',
+  hm: 'Din målfart för Göteborgsvarvet. Ska kännas kontrollerad. Du övar på att hitta och hålla farten jämnt, så kolla klockan ofta i början.',
+  vo2: 'Hårt – ungefär den fart du skulle orka i ett 3–5 km-lopp. Andningen blir tung mot slutet av varje intervall. Håll samma fart i alla, den första ska inte vara snabbast.',
+};
+
+/** Begrepp som förekommer i passen. */
+export const RUN_TERMS = {
+  stegringslopp:
+    'Korta, snabba ökningar efter det lugna passet. Börja i jogg och öka gradvis under 20 sekunder till ungefär 90–95 % av maxfart – snabbt men avslappnat, inte en spurt. Tänk lätta, snabba steg och rak hållning. Gå eller jogga lugnt ca 1 minut mellan varje, tills du känner dig pigg igen. Gör dem på plan mark. Syftet är löpsteg och snabbhet, inte att bli trött – passet ska fortfarande kännas lätt.',
+  uppvarmning: 'Lugn jogg i lugn fart innan det hårda börjar, så att kroppen är varm.',
+  nedjogg: 'Lugn jogg efteråt för att varva ner.',
+  jogg: 'Vila genom att jogga mycket lugnt mellan intervallerna (inte stå still).',
+  vila: 'Vila genom att gå eller stå still mellan intervallerna.',
+  test: 'Spring distansen så fort du kan hålla jämnt hela vägen – som ett lopp. Börja inte för hårt; öka hellre sista kilometern. Logga tiden för själva testdistansen, inte hela passet, så räknar appen om dina fartzoner.',
+  lopp: 'Börja kontrollerat i målfart första kilometrarna, håll jämnt och öka om du orkar efter 15 km.',
+  lang: 'Långpasset bygger uthållighet. Spring jämnt och lugnt, ta med vätska eller energi på pass över ca 90 minuter.',
+};
