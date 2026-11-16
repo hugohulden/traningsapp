@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 export function Card({ children, className = '', onClick }: { children: ReactNode; className?: string; onClick?: () => void }) {
   return (
@@ -80,7 +81,8 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     };
   }, [open]);
   if (!open) return null;
-  return (
+  // Portal till <body>: annars kan arket hamna under kort som skapar egna lager (isolate/opacity).
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative max-h-[92vh] overflow-y-auto rounded-t-3xl bg-panel border-t border-line safe-bottom">
@@ -92,7 +94,8 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
         </div>
         <div className="px-4 pb-4">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
