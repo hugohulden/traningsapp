@@ -89,7 +89,7 @@ export default function App() {
             {tab === 'kropp' && <BodyScreen />}
             {tab === 'mer' && <SettingsScreen />}
             <nav className="fixed bottom-0 inset-x-0 z-30 px-3 safe-bottom pointer-events-none">
-              <div className="pointer-events-auto mx-auto flex max-w-md rounded-[26px] border border-line bg-panel/80 p-1.5 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+              <div className="pointer-events-auto mx-auto flex max-w-md rounded-[26px] border border-line bg-panel/95 p-1.5 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] backdrop-blur-xl">
                 {TABS.map((t) => (
                   <button
                     key={t.id}
