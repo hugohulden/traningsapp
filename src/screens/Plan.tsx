@@ -4,14 +4,17 @@ import { useAppSettings, useNav } from '../App';
 import { db } from '../db/db';
 import { saveSettings } from '../db/store';
 import { PLAN_LENGTH, scheduleWarnings, weekIndexForDate, marathonLayout, type PlannedSession } from '../engine/planGenerator';
-import { DAY_NAMES, DAY_SHORT, formatShort } from '../lib/dates';
-import { num } from '../lib/format';
+import { DAY_NAMES, DAY_SHORT, formatShort, weekday } from '../lib/dates';
+import { formatDuration, formatPace, num } from '../lib/format';
+import { RunLogSheet } from '../ui/run';
+import type { RunRec } from '../db/db';
 import { Badge, Button, Card, Header, ProgressBar, Sheet } from '../ui/ui';
 import { SessionCard } from '../ui/session';
 import { easyShare, isDone, useToday, useWeekLogs, weekPlan, weekStatus } from '../ui/hooks';
-import { RECOVERY } from '../plan/config';
+import { RECOVERY, WEEKS_BEFORE_PLAN } from '../plan/config';
 
 const PHASE_COLOR: Record<string, string> = {
+  Uppstart: 'bg-slate-400',
   'Fas 1 Bas': 'bg-sky-500',
   'Fas 2 Tröskel': 'bg-violet-500',
   'Fas 3 Specifik': 'bg-orange-500',
@@ -32,7 +35,7 @@ export function PlanScreen() {
     return { gym, runs };
   }, []);
 
-  const weeks = Array.from({ length: last + 1 }, (_, i) => weekPlan(i, settings));
+  const weeks = Array.from({ length: last + 1 + WEEKS_BEFORE_PLAN }, (_, i) => weekPlan(i - WEEKS_BEFORE_PLAN, settings));
   let lastPhase = '';
 
   return (
@@ -68,7 +71,7 @@ export function PlanScreen() {
                       <span className="font-semibold">{w.label}</span>
                       <span className="text-xs text-mute">{formatShort(w.start)}</span>
                       {w.deload && <Badge tone="warn">D</Badge>}
-                      {w.repeated && <Badge tone="warn">{w.restart ? 'omstart' : `upprepar v${w.planWeek}`}</Badge>}
+                      {w.repeated && <Badge tone="warn">{w.restart ? 'omstart' : `upprepar v${(w.planWeek ?? 0) + WEEKS_BEFORE_PLAN}`}</Badge>}
                       {w.def?.quality?.test && <Badge tone="run">TEST</Badge>}
                       {isCur && <Badge tone="accent">nu</Badge>}
                     </div>
@@ -81,6 +84,8 @@ export function PlanScreen() {
                     <div className="mt-1.5 flex gap-1">
                       {Array.from({ length: 7 }, (_, d) => {
                         const ss = w.sessions.filter((s) => s.day === d);
+                        const noPlan = w.sessions.length === 0;
+                        const lg = noPlan && wl ? [...wl.gym.filter((g) => weekday(g.date) === d).map((g) => ({ k: g.id, c: 'bg-accent' })), ...wl.runs.filter((r) => weekday(r.date) === d).map((r) => ({ k: r.id, c: 'bg-run' }))] : [];
                         return (
                           <div key={d} className="flex-1 flex flex-col items-center gap-0.5">
                             <div className="text-[9px] text-mute">{DAY_SHORT[d][0]}</div>
@@ -91,6 +96,9 @@ export function PlanScreen() {
                                   className={`h-2 w-2 rounded-full ${isDone(s, wl) ? (s.kind === 'gym' ? 'bg-accent' : 'bg-run') : s.optional ? 'border border-line' : 'bg-line'}`}
                                 />
                               ))}
+                              {lg.map((x) => (
+                                <span key={x.k} className={`h-2 w-2 rounded-full ${x.c}`} />
+                              ))}
                             </div>
                           </div>
                         );
@@ -98,7 +106,7 @@ export function PlanScreen() {
                     </div>
                   </div>
                   <div className="text-right text-xs text-mute shrink-0 w-12">
-                    {st.done}/{st.total}
+                    {w.sessions.length ? `${st.done}/${st.total}` : `${(wl?.gym.length ?? 0) + (wl?.runs.length ?? 0)} pass`}
                     <div>{num(st.kmDone)} km</div>
                   </div>
                 </div>
@@ -119,6 +127,7 @@ export function WeekScreen({ index }: { index: number }) {
   const logs = useWeekLogs(index);
   const st = weekStatus(w, logs);
   const [moving, setMoving] = useState<PlannedSession | null>(null);
+  const [editRun, setEditRun] = useState<RunRec | null>(null);
   const warnings = scheduleWarnings([...w.sessions, ...next.sessions]).filter((x) => w.sessions.some((s) => x.sessionKeys.includes(s.key)));
   const share = logs ? easyShare(logs.runs) : null;
   const missed = settings.missedWeeks.find((m) => m.index === index);
@@ -133,14 +142,13 @@ export function WeekScreen({ index }: { index: number }) {
           <div className="grid grid-cols-3 gap-3">
             <div>
               <div className="text-xs text-mute">Pass</div>
-              <div className="text-xl font-bold">
-                {st.done}/{st.total}
-              </div>
+              <div className="text-xl font-bold">{w.sessions.length ? `${st.done}/${st.total}` : (logs?.gym.length ?? 0) + (logs?.runs.length ?? 0)}</div>
             </div>
             <div>
-              <div className="text-xs text-mute">Km sprungna / plan</div>
+              <div className="text-xs text-mute">{w.sessions.length ? 'Km sprungna / plan' : 'Km sprungna'}</div>
               <div className="text-xl font-bold">
-                {num(st.kmDone)} / {w.kmTarget != null ? num(w.kmTarget) : num(w.kmPlanned)}
+                {num(st.kmDone)}
+                {w.sessions.length ? ` / ${w.kmTarget != null ? num(w.kmTarget) : num(w.kmPlanned)}` : ''}
               </div>
             </div>
             <div>
@@ -149,9 +157,11 @@ export function WeekScreen({ index }: { index: number }) {
               <div className="text-[10px] text-mute">mål ca 80 % av tiden</div>
             </div>
           </div>
-          <div className="mt-3">
-            <ProgressBar value={st.kmDone} max={w.kmTarget ?? w.kmPlanned} tone="run" />
-          </div>
+          {w.sessions.length > 0 && (
+            <div className="mt-3">
+              <ProgressBar value={st.kmDone} max={w.kmTarget ?? w.kmPlanned} tone="run" />
+            </div>
+          )}
           {w.kmTarget != null && Math.abs(w.kmPlanned - w.kmTarget) >= 1 && (
             <div className="mt-2 text-xs text-mute">
               Planerade pass blir {num(w.kmPlanned)} km (rest under 4 km stryks, lördagspasset högst 8 km).
@@ -167,12 +177,40 @@ export function WeekScreen({ index }: { index: number }) {
 
         {Array.from({ length: 7 }, (_, d) => {
           const ss = w.sessions.filter((s) => s.day === d);
+          const dGym = unplannedGym.filter((g) => weekday(g.date) === d);
+          const dRun = unplannedRuns.filter((r) => weekday(r.date) === d);
           return (
             <div key={d}>
               <div className="text-sm font-semibold text-mute pt-1 pb-1">
                 {DAY_NAMES[d]} {formatShort(addD(w.start, d))}
               </div>
-              {ss.length === 0 && <div className="text-sm text-mute pl-1">Vila</div>}
+              {ss.length === 0 && dGym.length === 0 && dRun.length === 0 && <div className="text-sm text-mute pl-1">Vila</div>}
+              <div className="space-y-2">
+                {dGym.map((g) => (
+                  <button key={g.id} onClick={() => nav.push({ name: 'gym', id: g.id })} className="relative isolate w-full overflow-hidden rounded-2xl border border-line bg-panel px-4 py-3 text-left">
+                    <div className="absolute -z-10 inset-y-0 left-0 w-1 bg-accent" />
+                    <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent">Gym</div>
+                    <div className="font-semibold">{g.title}</div>
+                    <div className="text-xs text-mute">
+                      {g.exercises.reduce((a, e) => a + e.sets.filter((x) => x.done).length, 0)} set · {g.exercises.filter((e) => e.sets.some((x) => x.done)).length} övningar · tryck för att visa
+                    </div>
+                  </button>
+                ))}
+                {dRun.map((r) => (
+                  <button key={r.id} onClick={() => setEditRun(r)} className="relative isolate w-full overflow-hidden rounded-2xl border border-line bg-panel px-4 py-3 text-left">
+                    <div className="absolute -z-10 inset-y-0 left-0 w-1 bg-run" />
+                    <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-run">Löpning</div>
+                    <div className="font-semibold">
+                      {r.source !== 'manuell' ? '⌚ ' : ''}
+                      {r.name || 'Löppass'}
+                    </div>
+                    <div className="text-xs text-mute">
+                      {num(r.distanceKm, 2)} km · {formatDuration(r.durationSec)} · {formatPace(r.durationSec / r.distanceKm)}/km
+                      {r.avgHr ? ` · ${r.avgHr} bpm` : ''}
+                    </div>
+                  </button>
+                ))}
+              </div>
               <div className="space-y-2">
                 {ss.map((s) => (
                   <div key={s.key}>
@@ -186,22 +224,6 @@ export function WeekScreen({ index }: { index: number }) {
             </div>
           );
         })}
-
-        {(unplannedRuns.length > 0 || unplannedGym.length > 0) && (
-          <Card>
-            <div className="font-semibold mb-1">Övriga pass</div>
-            {unplannedGym.map((g) => (
-              <button key={g.id} onClick={() => nav.push({ name: 'gym', id: g.id })} className="block w-full text-left text-sm py-1 underline-offset-2 active:underline">
-                {formatShort(g.date)} · {g.title} ›
-              </button>
-            ))}
-            {unplannedRuns.map((r) => (
-              <div key={r.id} className="text-sm">
-                {formatShort(r.date)} · {num(r.distanceKm)} km
-              </div>
-            ))}
-          </Card>
-        )}
 
         {w.kind === 'plan' && index < PLAN_LENGTH - 1 && (
           <Card>
@@ -227,6 +249,7 @@ export function WeekScreen({ index }: { index: number }) {
         )}
       </div>
 
+      {editRun && <RunLogSheet open onClose={() => setEditRun(null)} settings={settings} existing={editRun} />}
       <Sheet open={!!moving} onClose={() => setMoving(null)} title={`Flytta: ${moving?.title ?? ''}`}>
         <div className="space-y-2">
           {DAY_NAMES.map((n, d) => (

@@ -14,6 +14,8 @@ import {
   RACE_NAME,
   RACE_WEEK,
   RECOVERY,
+  WEEKS_BEFORE_PLAN,
+  PRE_PHASE_NAME,
 } from '../plan/config';
 import type { IntervalBlock, LongDef, PlanWeekDef, QualityDef, ZoneKey } from '../plan/types';
 import type { AppSettings, MissedWeek } from '../plan/settings';
@@ -77,6 +79,13 @@ export type PlanContext = Pick<
 >;
 
 export const PLAN_LENGTH = PLAN_WEEKS.length; // 27
+/** Totalt antal veckor som visas (uppstart + planen). */
+export const TOTAL_WEEKS = PLAN_LENGTH + WEEKS_BEFORE_PLAN;
+
+/** Veckonummer som visas för ett veckoindex (planens vecka 1 = vecka 5). */
+export function displayWeek(index: number): number {
+  return index + 1 + WEEKS_BEFORE_PLAN;
+}
 
 export function weekIndexForDate(date: string): number {
   return Math.floor(diffDays(date, PLAN_START) / 7);
@@ -244,6 +253,9 @@ function sumKm(sessions: PlannedSession[]) {
 export function getWeekPlan(index: number, ctx: PlanContext, seq = buildSequence(ctx.missedWeeks)): WeekPlan {
   const start = weekStart(index);
 
+  if (index < 0 && index >= -WEEKS_BEFORE_PLAN) {
+    return { index, kind: 'fore', label: `Vecka ${displayWeek(index)}`, start, planWeek: null, phase: null, phaseName: PRE_PHASE_NAME, deload: false, kmTarget: null, kmPlanned: 0, sessions: [] };
+  }
   if (index < 0) {
     return { index, kind: 'fore', label: 'Före planen', start, planWeek: null, phase: null, phaseName: 'Före planstart', deload: false, kmTarget: null, kmPlanned: 0, sessions: [] };
   }
@@ -257,7 +269,7 @@ export function getWeekPlan(index: number, ctx: PlanContext, seq = buildSequence
     return {
       index,
       kind: 'plan',
-      label: `Vecka ${index + 1}`,
+      label: `Vecka ${displayWeek(index)}`,
       start,
       planWeek: def.week,
       phase: def.phase,

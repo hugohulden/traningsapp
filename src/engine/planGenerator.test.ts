@@ -52,7 +52,7 @@ describe('veckoplanen stämmer exakt med tabellen (v1–27)', () => {
   for (const [v, start, phase, km, long, quality] of TABLE) {
     it(`vecka ${v}`, () => {
       const w = getWeekPlan(v - 1, ctx);
-      expect(w.label).toBe(`Vecka ${v}`);
+      expect(w.label).toBe(`Vecka ${v + 4}`); // fyra uppstartsveckor före planen
       expect(w.start).toBe(start);
       expect(weekday(w.start)).toBe(0);
       expect(w.planWeek).toBe(v);

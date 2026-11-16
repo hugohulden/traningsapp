@@ -237,6 +237,12 @@ export const HM_PREDICT = { '10k': 2.2065, '5k': 4.6 };
 // ---------------------------------------------------------------------------
 
 export const PLAN_START = '2026-11-16';
+/**
+ * Veckor du redan tränat före planstart (19 okt–15 nov 2026). De visas som vecka 1–4
+ * och planens vecka 1 visas som vecka 5. Själva planen (tabellen v1–27) påverkas inte.
+ */
+export const WEEKS_BEFORE_PLAN = 4;
+export const PRE_PHASE_NAME = 'Uppstart';
 export const RACE_DATE = '2027-05-22';
 export const RACE_NAME = 'Göteborgsvarvet';
 export const RACE_KM = 21.0975;

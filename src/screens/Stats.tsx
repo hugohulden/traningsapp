@@ -7,7 +7,7 @@ import { historyFromSessions, exerciseName } from '../db/store';
 import { getExercise } from '../engine/gymPlan';
 import { epley, bestSet, workWeight } from '../engine/progression';
 import { hmPrediction, paceOf } from '../engine/running';
-import { PLAN_LENGTH, weekIndexForDate, weekStart } from '../engine/planGenerator';
+import { PLAN_LENGTH, TOTAL_WEEKS, displayWeek, weekIndexForDate, weekStart } from '../engine/planGenerator';
 import { RUN_DEFAULTS } from '../plan/config';
 import { formatShort, mondayOf } from '../lib/dates';
 import { formatDuration, formatPace, num } from '../lib/format';
@@ -160,9 +160,10 @@ function RunStats() {
   const weekly = Array.from({ length: PLAN_LENGTH - first }, (_, k) => {
     const i = first + k;
     const km = runs.filter((r) => r.weekIndex === i).reduce((a, r) => a + r.distanceKm, 0);
-    if (i < 0) return { v: formatShort(weekStart(i)), sprunget: Math.round(km * 10) / 10, plan: null as number | null };
+    if (i < -4) return { v: formatShort(weekStart(i)), sprunget: Math.round(km * 10) / 10, plan: null as number | null };
+    if (i < 0) return { v: `v${displayWeek(i)}`, sprunget: Math.round(km * 10) / 10, plan: null as number | null };
     const w = weekPlan(i, settings);
-    return { v: `v${i + 1}`, sprunget: Math.round(km * 10) / 10, plan: w.kmTarget ?? Math.round(w.kmPlanned) };
+    return { v: `v${displayWeek(i)}`, sprunget: Math.round(km * 10) / 10, plan: w.kmTarget ?? Math.round(w.kmPlanned) };
   });
   const longest = runs.reduce<(typeof runs)[number] | null>((a, r) => (!a || r.distanceKm > a.distanceKm ? r : a), null);
   const total = runs.reduce((a, r) => a + r.distanceKm, 0);
@@ -278,7 +279,7 @@ function RunStats() {
             ))}
         </div>
         {runs.length === 0 && <div className="text-sm text-mute">Inga löppass loggade än.</div>}
-        <div className="text-[11px] text-mute mt-2">Vecka {Math.max(1, weekIndexForDate(day) + 1)} av {PLAN_LENGTH}</div>
+        <div className="text-[11px] text-mute mt-2">Vecka {Math.max(1, displayWeek(weekIndexForDate(day)))} av {TOTAL_WEEKS}</div>
       </Card>
     </>
   );

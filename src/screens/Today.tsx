@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useAppSettings, useNav } from '../App';
 import { db } from '../db/db';
 import { allHistory, saveSettings, startGymSession, useActiveGymSession } from '../db/store';
-import { weekIndexForDate, PLAN_LENGTH, type PlannedSession } from '../engine/planGenerator';
+import { weekIndexForDate, PLAN_LENGTH, TOTAL_WEEKS, type PlannedSession } from '../engine/planGenerator';
 import { BACKUP_REMINDER_DAYS, BODY, GENERATOR, GYM_TEMPLATES, PLAN_START } from '../plan/config';
 import { addDays, diffDays, formatLong, formatShort, DAY_NAMES, testDate } from '../lib/dates';
 import { num } from '../lib/format';
@@ -63,7 +63,7 @@ export function TodayScreen() {
         <RestartPrompt idx={idx} day={day} />
         <VolumePrompt idx={idx} phase={week.phase} />
 
-        {week.kind === 'fore' && (
+        {week.kind === 'fore' && idx < -4 && (
           <Card>
             <div className="font-semibold">Planen startar måndag {formatShort(PLAN_START)}</div>
             <div className="text-sm text-mute mt-1">Fram till dess kan du köra valfria pass nedan för att kalibrera vikterna.</div>
@@ -157,7 +157,7 @@ function TopStats(p: {
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-2xl font-bold text-mute">Vecka</span>
               <span className="text-grad text-6xl font-black leading-none tracking-tighter">{m[1]}</span>
-              <span className="text-lg font-semibold text-mute">av {PLAN_LENGTH}</span>
+              <span className="text-lg font-semibold text-mute">av {TOTAL_WEEKS}</span>
             </div>
           ) : (
             <div className="text-grad mt-1 text-4xl font-black leading-tight tracking-tight">{p.label}</div>
