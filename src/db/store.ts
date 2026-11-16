@@ -272,8 +272,17 @@ export async function saveRun(run: Omit<RunRec, 'id' | 'createdAt' | 'weekIndex'
   return {};
 }
 
+/** Tar bort ett löppass. Var det ett testlopp tas även tröskelvärdet bort och T går tillbaka till förra värdet. */
 export async function deleteRun(id: string) {
+  const r = await db.runs.get(id);
   await db.runs.delete(id);
+  if (r && (r.test === '5k' || r.test === '10k')) {
+    const n = await db.thresholds.where('date').equals(r.date).filter((t) => t.source === r.test).delete();
+    if (n) {
+      const latest = await db.thresholds.orderBy('date').last();
+      if (latest) await saveSettings({ thresholdSec: latest.thresholdSec });
+    }
+  }
 }
 
 export async function setThresholdManually(sec: number) {

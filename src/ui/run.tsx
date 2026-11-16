@@ -3,7 +3,8 @@ import type { PlannedSession, RunSpec } from '../engine/planGenerator';
 import { plannedDurationSec, zoneHr, zoneName, zoneText, hmPrediction, paceOf } from '../engine/running';
 import type { AppSettings } from '../plan/settings';
 import { formatDuration, formatPace, num, parseDuration, parseNum } from '../lib/format';
-import { saveRun } from '../db/store';
+import { deleteRun, saveRun } from '../db/store';
+import { ask } from './confirm';
 import { Button, Field, Segmented, Sheet, inputCls } from './ui';
 import type { RunRec } from '../db/db';
 import { today } from '../lib/dates';
@@ -197,6 +198,19 @@ function RunForm({ planned, settings, existing, onDone }: { planned?: PlannedSes
       <Field label="Anteckning">
         <textarea className={`${inputCls} min-h-20 py-2 text-base`} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
+      {existing && (
+        <Button
+          kind="danger"
+          className="w-full"
+          onClick={async () => {
+            if (!(await ask(`Ta bort löppasset ${num(existing.distanceKm, 2)} km ${existing.date}?`, { ok: 'Ta bort', danger: true }))) return;
+            await deleteRun(existing.id);
+            onDone();
+          }}
+        >
+          Ta bort pass
+        </Button>
+      )}
     </div>
   );
 }
