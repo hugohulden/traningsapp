@@ -3,9 +3,9 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useAppSettings, useNav } from '../App';
 import { db } from '../db/db';
 import { allHistory, saveSettings, startGymSession, useActiveGymSession } from '../db/store';
-import { weekIndexForDate, weeksToRace, PLAN_LENGTH, type PlannedSession } from '../engine/planGenerator';
-import { BACKUP_REMINDER_DAYS, BODY, GENERATOR, GYM_TEMPLATES, PLAN_START, RACE_NAME } from '../plan/config';
-import { diffDays, formatLong, formatShort, DAY_NAMES, testDate } from '../lib/dates';
+import { weekIndexForDate, PLAN_LENGTH, type PlannedSession } from '../engine/planGenerator';
+import { BACKUP_REMINDER_DAYS, BODY, GENERATOR, GYM_TEMPLATES, PLAN_START } from '../plan/config';
+import { addDays, diffDays, formatLong, formatShort, DAY_NAMES, testDate } from '../lib/dates';
 import { num } from '../lib/format';
 import { Badge, Button, Card, Header, ProgressBar, Sheet } from '../ui/ui';
 import { SessionCard } from '../ui/session';
@@ -39,12 +39,12 @@ export function TodayScreen() {
         sub={
           <span>
             {testDate() ? '🧪 ' : ''}
-            {formatLong(day)} · {week.kind === 'plan' ? `${week.label} av ${PLAN_LENGTH}` : week.label}
+            {formatLong(day)}
           </span>
         }
       />
       <div className="space-y-4 p-4">
-        <TopStats idx={idx} day={day} status={status} weekKm={week.kmTarget} phase={week.phaseName} deload={week.deload} repeated={week.repeated} restart={week.restart} />
+        <TopStats idx={idx} day={day} label={week.label} kind={week.kind} start={week.start} status={status} weekKm={week.kmTarget} phase={week.phaseName} deload={week.deload} repeated={week.repeated} restart={week.restart} />
 
         {active && (
           <Card onClick={() => nav.push({ name: 'gym', id: active.id })} className="border-accent/60">
@@ -134,6 +134,9 @@ function nextSession(idx: number, day: string, settings: ReturnType<typeof useAp
 function TopStats(p: {
   idx: number;
   day: string;
+  label: string;
+  kind: string;
+  start: string;
   status: { done: number; total: number; kmDone: number };
   weekKm: number | null;
   phase: string;
@@ -141,19 +144,24 @@ function TopStats(p: {
   repeated?: boolean;
   restart?: boolean;
 }) {
-  const weeks = weeksToRace(p.day);
-  const days = diffDays('2027-05-22', p.day);
   const total = p.status.total || 6;
+  const m = p.label.match(/^Vecka (\d+)$/);
   return (
     <div className="ring-grad rounded-3xl p-4">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mute">{RACE_NAME} 2027</div>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-grad text-6xl font-black leading-none tracking-tighter">{days > 0 ? days : 0}</span>
-            <span className="text-lg font-semibold text-mute">{days > 0 ? 'dagar kvar' : 'idag!'}</span>
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mute">
+            Denna vecka · {weekRange(p.start)}
           </div>
-          {weeks > 0 && <div className="mt-1 text-sm text-mute">{weeks} veckor · 21,1 km</div>}
+          {m ? (
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-mute">Vecka</span>
+              <span className="text-grad text-6xl font-black leading-none tracking-tighter">{m[1]}</span>
+              <span className="text-lg font-semibold text-mute">av {PLAN_LENGTH}</span>
+            </div>
+          ) : (
+            <div className="text-grad mt-1 text-4xl font-black leading-tight tracking-tight">{p.label}</div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <Badge tone="run">{p.phase}</Badge>
@@ -336,4 +344,12 @@ function SyncStatus() {
       </button>
     </div>
   );
+}
+
+/** "16–22 nov" eller "30 nov–6 dec". */
+function weekRange(start: string): string {
+  const a = formatShort(start);
+  const b = formatShort(addDays(start, 6));
+  const [ad, am] = a.split(' ');
+  return am === b.split(' ')[1] ? `${ad}–${b}` : `${a}–${b}`;
 }
