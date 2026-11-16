@@ -3,8 +3,8 @@ import { ResponsiveContainer } from 'recharts';
 
 /** Diagramfärger per tema. Serie­färgerna (#0284c7, #65a30d) fungerar mot både mörk och ljus yta. */
 const PALETTES = {
-  dark: { run: '#0284c7', gym: '#65a30d', ref: '#8b98a8', grid: '#2a3442', axis: '#8b98a8', panel: '#141a22', panel2: '#1c2430', ink: '#e6edf3' },
-  light: { run: '#0284c7', gym: '#65a30d', ref: '#6b7787', grid: '#d5dce5', axis: '#5b6677', panel: '#ffffff', panel2: '#ffffff', ink: '#0f172a' },
+  dark: { run: '#0284c7', gym: '#65a30d', swim: '#8b5cf6', ref: '#8b98a8', grid: '#2a3442', axis: '#8b98a8', panel: '#141a22', panel2: '#1c2430', ink: '#e6edf3' },
+  light: { run: '#0284c7', gym: '#65a30d', swim: '#8b5cf6', ref: '#6b7787', grid: '#d5dce5', axis: '#5b6677', panel: '#ffffff', panel2: '#ffffff', ink: '#0f172a' },
 };
 
 /** Aktuella färger (uppdateras av setChartTheme; diagrammen ritas om när temat byts). */

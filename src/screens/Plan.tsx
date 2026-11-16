@@ -7,7 +7,8 @@ import { PLAN_LENGTH, scheduleWarnings, weekIndexForDate, marathonLayout, type P
 import { DAY_NAMES, DAY_SHORT, formatShort, weekday } from '../lib/dates';
 import { formatDuration, formatPace, num } from '../lib/format';
 import { RunLogSheet } from '../ui/run';
-import type { RunRec } from '../db/db';
+import type { RunRec, SwimRec } from '../db/db';
+import { SwimLogSheet, SwimRow } from '../ui/swim';
 import { Badge, Button, Card, Header, ProgressBar, Sheet } from '../ui/ui';
 import { SessionCard } from '../ui/session';
 import { easyShare, isDone, useToday, useWeekLogs, weekPlan, weekStatus } from '../ui/hooks';
@@ -32,7 +33,8 @@ export function PlanScreen() {
   const logs = useLiveQuery(async () => {
     const gym = await db.gymSessions.where('status').equals('done').toArray();
     const runs = await db.runs.toArray();
-    return { gym, runs };
+    const swims = await db.swims.toArray();
+    return { gym, runs, swims };
   }, []);
 
   const weeks = Array.from({ length: last + 1 + WEEKS_BEFORE_PLAN }, (_, i) => weekPlan(i - WEEKS_BEFORE_PLAN, settings));
@@ -51,7 +53,7 @@ export function PlanScreen() {
           ))}
         </div>
         {weeks.map((w) => {
-          const wl = logs ? { gym: logs.gym.filter((g) => g.weekIndex === w.index), runs: logs.runs.filter((r) => r.weekIndex === w.index) } : undefined;
+          const wl = logs ? { gym: logs.gym.filter((g) => g.weekIndex === w.index), runs: logs.runs.filter((r) => r.weekIndex === w.index), swims: logs.swims.filter((x) => x.weekIndex === w.index) } : undefined;
           const st = weekStatus(w, wl);
           const header = w.phaseName !== lastPhase ? w.phaseName : null;
           lastPhase = w.phaseName;
@@ -86,6 +88,7 @@ export function PlanScreen() {
                         const ss = w.sessions.filter((s) => s.day === d);
                         const noPlan = w.sessions.length === 0;
                         const lg = noPlan && wl ? [...wl.gym.filter((g) => weekday(g.date) === d).map((g) => ({ k: g.id, c: 'bg-accent' })), ...wl.runs.filter((r) => weekday(r.date) === d).map((r) => ({ k: r.id, c: 'bg-run' }))] : [];
+                        const sw = (wl?.swims ?? []).filter((x) => weekday(x.date) === d).map((x) => ({ k: x.id, c: 'bg-swim' }));
                         return (
                           <div key={d} className="flex-1 flex flex-col items-center gap-0.5">
                             <div className="text-[9px] text-mute">{DAY_SHORT[d][0]}</div>
@@ -96,7 +99,7 @@ export function PlanScreen() {
                                   className={`h-2 w-2 rounded-full ${isDone(s, wl) ? (s.kind === 'gym' ? 'bg-accent' : 'bg-run') : s.optional ? 'border border-line' : 'bg-line'}`}
                                 />
                               ))}
-                              {lg.map((x) => (
+                              {[...lg, ...sw].map((x) => (
                                 <span key={x.k} className={`h-2 w-2 rounded-full ${x.c}`} />
                               ))}
                             </div>
@@ -106,7 +109,7 @@ export function PlanScreen() {
                     </div>
                   </div>
                   <div className="text-right text-xs text-mute shrink-0 w-12">
-                    {w.sessions.length ? `${st.done}/${st.total}` : `${(wl?.gym.length ?? 0) + (wl?.runs.length ?? 0)} pass`}
+                    {w.sessions.length ? `${st.done}/${st.total}` : `${(wl?.gym.length ?? 0) + (wl?.runs.length ?? 0) + (wl?.swims.length ?? 0)} pass`}
                     <div>{num(st.kmDone)} km</div>
                   </div>
                 </div>
@@ -128,6 +131,7 @@ export function WeekScreen({ index }: { index: number }) {
   const st = weekStatus(w, logs);
   const [moving, setMoving] = useState<PlannedSession | null>(null);
   const [editRun, setEditRun] = useState<RunRec | null>(null);
+  const [editSwim, setEditSwim] = useState<SwimRec | null>(null);
   const warnings = scheduleWarnings([...w.sessions, ...next.sessions]).filter((x) => w.sessions.some((s) => x.sessionKeys.includes(s.key)));
   const share = logs ? easyShare(logs.runs) : null;
   const missed = settings.missedWeeks.find((m) => m.index === index);
@@ -142,7 +146,7 @@ export function WeekScreen({ index }: { index: number }) {
           <div className="grid grid-cols-3 gap-3">
             <div>
               <div className="text-xs text-mute">Pass</div>
-              <div className="text-xl font-bold">{w.sessions.length ? `${st.done}/${st.total}` : (logs?.gym.length ?? 0) + (logs?.runs.length ?? 0)}</div>
+              <div className="text-xl font-bold">{w.sessions.length ? `${st.done}/${st.total}` : (logs?.gym.length ?? 0) + (logs?.runs.length ?? 0) + (logs?.swims?.length ?? 0)}</div>
             </div>
             <div>
               <div className="text-xs text-mute">{w.sessions.length ? 'Km sprungna / plan' : 'Km sprungna'}</div>
@@ -179,12 +183,13 @@ export function WeekScreen({ index }: { index: number }) {
           const ss = w.sessions.filter((s) => s.day === d);
           const dGym = unplannedGym.filter((g) => weekday(g.date) === d);
           const dRun = unplannedRuns.filter((r) => weekday(r.date) === d);
+          const dSwim = (logs?.swims ?? []).filter((x) => weekday(x.date) === d);
           return (
             <div key={d}>
               <div className="text-sm font-semibold text-mute pt-1 pb-1">
                 {DAY_NAMES[d]} {formatShort(addD(w.start, d))}
               </div>
-              {ss.length === 0 && dGym.length === 0 && dRun.length === 0 && <div className="text-sm text-mute pl-1">Vila</div>}
+              {ss.length === 0 && dGym.length === 0 && dRun.length === 0 && dSwim.length === 0 && <div className="text-sm text-mute pl-1">Vila</div>}
               <div className="space-y-2">
                 {dGym.map((g) => (
                   <button key={g.id} onClick={() => nav.push({ name: 'gym', id: g.id })} className="relative isolate w-full overflow-hidden rounded-2xl border border-line bg-panel px-4 py-3 text-left">
@@ -195,6 +200,9 @@ export function WeekScreen({ index }: { index: number }) {
                       {g.exercises.reduce((a, e) => a + e.sets.filter((x) => x.done).length, 0)} set · {g.exercises.filter((e) => e.sets.some((x) => x.done)).length} övningar · tryck för att visa
                     </div>
                   </button>
+                ))}
+                {dSwim.map((x) => (
+                  <SwimRow key={x.id} w={x} onClick={() => setEditSwim(x)} />
                 ))}
                 {dRun.map((r) => (
                   <button key={r.id} onClick={() => setEditRun(r)} className="relative isolate w-full overflow-hidden rounded-2xl border border-line bg-panel px-4 py-3 text-left">
@@ -249,6 +257,7 @@ export function WeekScreen({ index }: { index: number }) {
         )}
       </div>
 
+      {editSwim && <SwimLogSheet open onClose={() => setEditSwim(null)} existing={editSwim} />}
       {editRun && <RunLogSheet open onClose={() => setEditRun(null)} settings={settings} existing={editRun} />}
       <Sheet open={!!moving} onClose={() => setMoving(null)} title={`Flytta: ${moving?.title ?? ''}`}>
         <div className="space-y-2">

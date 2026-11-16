@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Bar, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAppSettings, useNav } from '../App';
-import { db, type GymSessionRec } from '../db/db';
+import { db, type GymSessionRec, type SwimRec } from '../db/db';
+import { SwimLogSheet, pace100, swimSummary } from '../ui/swim';
 import { historyFromSessions, exerciseName } from '../db/store';
 import { getExercise } from '../engine/gymPlan';
 import { epley, bestSet, workWeight } from '../engine/progression';
@@ -17,13 +18,13 @@ import { useToday, weekPlan } from '../ui/hooks';
 import type { MuscleGroup } from '../plan/types';
 
 export function StatsScreen() {
-  const [tab, setTab] = useState<'gym' | 'run'>('gym');
+  const [tab, setTab] = useState<'gym' | 'run' | 'swim'>('gym');
   return (
     <div>
       <Header title="Statistik" />
       <div className="p-4 space-y-4">
-        <Segmented value={tab} onChange={setTab} options={[{ value: 'gym', label: 'Gym' }, { value: 'run', label: 'Löpning' }]} />
-        {tab === 'gym' ? <GymStats /> : <RunStats />}
+        <Segmented value={tab} onChange={setTab} options={[{ value: 'gym', label: 'Gym' }, { value: 'run', label: 'Löpning' }, { value: 'swim', label: 'Simning' }]} />
+        {tab === 'gym' ? <GymStats /> : tab === 'run' ? <RunStats /> : <SwimStats />}
       </div>
     </div>
   );
@@ -340,5 +341,61 @@ function RecentGym({ sessions }: { sessions: GymSessionRec[] }) {
       </div>
       {list.length === 0 && <div className="text-sm text-mute">Inga gympass än.</div>}
     </Card>
+  );
+}
+
+function SwimStats() {
+  const swims = useLiveQuery(() => db.swims.orderBy('date').toArray(), []);
+  const [edit, setEdit] = useState<SwimRec | null>(null);
+  const day = useToday();
+  if (!swims) return null;
+  if (!swims.length)
+    return (
+      <Card>
+        <div className="font-semibold">Inga simpass än</div>
+        <div className="text-sm text-mute mt-1">Logga med "+ Simpass" på Idag, eller låt klockan synka via Intervals.icu.</div>
+      </Card>
+    );
+  const totalM = swims.reduce((a, w) => a + w.distanceM, 0);
+  const totalSec = swims.reduce((a, w) => a + w.durationSec, 0);
+  const first = Math.min(...swims.map((w) => w.weekIndex));
+  const last = Math.max(...swims.map((w) => w.weekIndex), weekIndexForDate(day));
+  const weekly = Array.from({ length: last - first + 1 }, (_, k) => {
+    const i = first + k;
+    return { v: `v${displayWeek(i)}`, meter: swims.filter((w) => w.weekIndex === i).reduce((a, w) => a + w.distanceM, 0) };
+  });
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <Card>
+          <Stat label="Pass" value={swims.length} />
+        </Card>
+        <Card>
+          <Stat label="Totalt" value={`${num(totalM / 1000, 1)} km`} />
+        </Card>
+        <Card>
+          <Stat label="Snittempo" value={pace100(totalM, totalSec)} sub="per 100 m" />
+        </Card>
+      </div>
+      <ChartBox title="Meter per vecka">
+        <ComposedChart data={weekly} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+          <CartesianGrid vertical={false} stroke={C.grid} />
+          <XAxis dataKey="v" {...axisProps} />
+          <YAxis {...axisProps} />
+          <Tooltip {...tooltipProps} formatter={(v) => [`${v} m`, 'Simmat']} />
+          <Bar dataKey="meter" fill={C.swim} radius={[4, 4, 0, 0]} maxBarSize={22} isAnimationActive={false} />
+        </ComposedChart>
+      </ChartBox>
+      <Card>
+        <div className="font-semibold mb-2">Senaste simpass</div>
+        {[...swims].reverse().slice(0, 15).map((w) => (
+          <button key={w.id} onClick={() => setEdit(w)} className="flex w-full justify-between gap-2 border-b border-line py-2 text-left text-sm last:border-0">
+            <span>{formatShort(w.date)}</span>
+            <span className="text-mute">{swimSummary(w)}</span>
+          </button>
+        ))}
+      </Card>
+      {edit && <SwimLogSheet open onClose={() => setEdit(null)} existing={edit} />}
+    </div>
   );
 }

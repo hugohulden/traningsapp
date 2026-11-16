@@ -11,6 +11,8 @@ import { Badge, Button, Card, Header, ProgressBar, Sheet } from '../ui/ui';
 import { SessionCard } from '../ui/session';
 import { isDone, useToday, useWeekLogs, weekPlan, weekStatus } from '../ui/hooks';
 import { RunLogSheet } from '../ui/run';
+import { SwimLogSheet, SwimRow } from '../ui/swim';
+import type { SwimRec } from '../db/db';
 import { movingAverage } from '../engine/bodyweight';
 import { volumeSuggestion, type HistoryEntry } from '../engine/progression';
 import { getExercise } from '../engine/gymPlan';
@@ -31,6 +33,7 @@ export function TodayScreen() {
   const next = nextSession(idx, day, settings, logs ? (s) => isDone(s, logs) : () => false);
   const [freeRun, setFreeRun] = useState(false);
   const [freeGym, setFreeGym] = useState(false);
+  const [swim, setSwim] = useState(false);
 
   return (
     <div>
@@ -85,16 +88,21 @@ export function TodayScreen() {
 
         <QuickBody day={day} />
 
-        <div className="grid grid-cols-2 gap-3">
-          <Button kind="soft" onClick={() => setFreeGym(true)}>
-            + Valfritt gympass
+        <div className="grid grid-cols-3 gap-2">
+          <Button kind="soft" className="px-2 text-sm" onClick={() => setFreeGym(true)}>
+            <span className="text-accent">+</span> Gympass
           </Button>
-          <Button kind="soft" onClick={() => setFreeRun(true)}>
-            + Annat löppass
+          <Button kind="soft" className="px-2 text-sm" onClick={() => setFreeRun(true)}>
+            <span className="text-run">+</span> Löppass
+          </Button>
+          <Button kind="soft" className="px-2 text-sm" onClick={() => setSwim(true)}>
+            <span className="text-swim">+</span> Simpass
           </Button>
         </div>
+        <TodaySwims day={day} />
       </div>
       <RunLogSheet open={freeRun} onClose={() => setFreeRun(false)} settings={settings} />
+      <SwimLogSheet open={swim} onClose={() => setSwim(false)} />
       <Sheet open={freeGym} onClose={() => setFreeGym(false)} title="Starta gympass">
         <div className="space-y-2">
           {(Object.keys(GYM_TEMPLATES) as GymTemplateId[]).map((t) => (
@@ -352,4 +360,19 @@ function weekRange(start: string): string {
   const b = formatShort(addDays(start, 6));
   const [ad, am] = a.split(' ');
   return am === b.split(' ')[1] ? `${ad}–${b}` : `${a}–${b}`;
+}
+
+/** Simpass loggade idag (visas under knapparna). */
+function TodaySwims({ day }: { day: string }) {
+  const swims = useLiveQuery(() => db.swims.where('date').equals(day).toArray(), [day]);
+  const [edit, setEdit] = useState<SwimRec | null>(null);
+  if (!swims?.length) return null;
+  return (
+    <div className="space-y-2">
+      {swims.map((w) => (
+        <SwimRow key={w.id} w={w} onClick={() => setEdit(w)} />
+      ))}
+      {edit && <SwimLogSheet open onClose={() => setEdit(null)} existing={edit} />}
+    </div>
+  );
 }

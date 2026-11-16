@@ -73,6 +73,23 @@ export interface RunRec {
   createdAt: number;
 }
 
+export interface SwimRec {
+  id: string;
+  date: string;
+  weekIndex: number;
+  distanceM: number;
+  durationSec: number;
+  avgHr?: number;
+  maxHr?: number;
+  rpe?: number;
+  pool: 'bassang' | 'oppet';
+  notes: string;
+  source: 'manuell' | 'garmin' | 'intervals';
+  name?: string;
+  externalId?: string;
+  createdAt: number;
+}
+
 export interface WeighIn {
   date: string;
   kg: number;
@@ -99,6 +116,7 @@ export interface KV {
 export class AppDB extends Dexie {
   gymSessions!: Table<GymSessionRec, string>;
   runs!: Table<RunRec, string>;
+  swims!: Table<SwimRec, string>;
   weighIns!: Table<WeighIn, string>;
   protein!: Table<ProteinDay, string>;
   customExercises!: Table<ExerciseDef, string>;
@@ -116,12 +134,14 @@ export class AppDB extends Dexie {
       thresholds: '++id, date',
       kv: 'key',
     });
+    // v2: simpass
+    this.version(2).stores({ swims: 'id, date, weekIndex, externalId' });
   }
 }
 
 export const db = new AppDB();
 
-export const TABLES = ['gymSessions', 'runs', 'weighIns', 'protein', 'customExercises', 'thresholds', 'kv'] as const;
+export const TABLES = ['gymSessions', 'runs', 'swims', 'weighIns', 'protein', 'customExercises', 'thresholds', 'kv'] as const;
 
 export function uid(): string {
   return (crypto as Crypto & { randomUUID?: () => string }).randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;

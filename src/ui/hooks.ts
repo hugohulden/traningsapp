@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type GymSessionRec, type RunRec } from '../db/db';
+import { db, type GymSessionRec, type RunRec, type SwimRec } from '../db/db';
 import type { AppSettings } from '../plan/settings';
 import { getWeekPlan, type PlannedSession, type WeekPlan } from '../engine/planGenerator';
 import { today } from '../lib/dates';
@@ -26,13 +26,15 @@ export function weekPlan(index: number, s: AppSettings): WeekPlan {
 export interface WeekLogs {
   gym: GymSessionRec[];
   runs: RunRec[];
+  swims?: SwimRec[];
 }
 
 export function useWeekLogs(index: number): WeekLogs | undefined {
   return useLiveQuery(async () => {
     const gym = (await db.gymSessions.where('weekIndex').equals(index).toArray()).filter((g) => g.status === 'done');
     const runs = await db.runs.where('weekIndex').equals(index).toArray();
-    return { gym, runs };
+    const swims = await db.swims.where('weekIndex').equals(index).toArray();
+    return { gym, runs, swims };
   }, [index]);
 }
 

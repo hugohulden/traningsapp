@@ -130,7 +130,7 @@ export function SettingsScreen() {
                 const json = JSON.parse(await f.text());
                 if (json?.format === HISTORY_FORMAT) {
                   const r = await mergeHistory(db, json);
-                  setMsg(`Historik inläst: ${r.runs} löppass och ${r.gym} gympass lades till.`);
+                  setMsg(`Historik inläst: ${r.runs} löppass, ${r.gym} gympass och ${r.swims} simpass lades till.`);
                   return;
                 }
                 if (!(await ask('Importen ersätter ALL data i appen med innehållet i filen. Fortsätta?', { ok: 'Ersätt', danger: true }))) return;

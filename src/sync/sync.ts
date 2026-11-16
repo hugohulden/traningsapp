@@ -1,10 +1,10 @@
 /** Hämtar nya löppass från Intervals.icu och sparar dem i appen. */
-import { db, uid, type RunRec } from '../db/db';
+import { db, uid, type RunRec, type SwimRec } from '../db/db';
 import { loadSettings, saveSettings } from '../db/store';
 import { getWeekPlan, weekIndexForDate } from '../engine/planGenerator';
 import { addDays, today } from '../lib/dates';
 import { PLAN_START } from '../plan/config';
-import { fetchActivities, guessCategory, isDuplicateOf, matchPlanned, toImportedRun, SyncError } from './intervals';
+import { fetchActivities, guessCategory, isDuplicateOf, matchPlanned, toImportedRun, toImportedSwim, SyncError } from './intervals';
 
 export interface SyncResult {
   imported: number;
@@ -98,6 +98,23 @@ async function doSync(force: boolean): Promise<SyncResult> {
       createdAt: Date.now(),
     };
     await db.runs.put(rec);
+    imported++;
+  }
+
+  // Simpass: egna poster, dubbletter (samma dag, distans inom 10 %) kopplas ihop med handloggade.
+  for (const w of acts.map(toImportedSwim).filter((x): x is NonNullable<typeof x> => !!x)) {
+    if (await db.swims.where('externalId').equals(w.externalId).first()) continue;
+    const weekIndex = weekIndexForDate(w.date);
+    const same = (await db.swims.where('date').equals(w.date).toArray()).find(
+      (x) => !x.externalId?.startsWith('intervals:') && Math.abs(x.distanceM - w.distanceM) <= Math.max(50, w.distanceM * 0.1),
+    );
+    if (same) {
+      await db.swims.update(same.id, { externalId: w.externalId, durationSec: w.durationSec, avgHr: w.avgHr ?? same.avgHr, maxHr: w.maxHr });
+      linked++;
+      continue;
+    }
+    const rec: SwimRec = { id: uid(), date: w.date, weekIndex, distanceM: w.distanceM, durationSec: w.durationSec, avgHr: w.avgHr, maxHr: w.maxHr, rpe: w.rpe, pool: w.pool, notes: '', source: 'intervals', externalId: w.externalId, name: w.name, createdAt: Date.now() };
+    await db.swims.put(rec);
     imported++;
   }
 

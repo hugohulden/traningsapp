@@ -8,10 +8,11 @@ export function Card({ children, className = '', onClick }: { children: ReactNod
   );
 }
 
-type BtnKind = 'primary' | 'run' | 'ghost' | 'danger' | 'soft';
+type BtnKind = 'primary' | 'run' | 'swim' | 'ghost' | 'danger' | 'soft';
 const BTN: Record<BtnKind, string> = {
   primary: 'bg-accent text-onaccent font-semibold glow-accent active:brightness-90',
   run: 'bg-run text-onaccent font-semibold glow-run active:brightness-90',
+  swim: 'bg-swim text-onaccent font-semibold active:brightness-90',
   ghost: 'bg-transparent border border-line text-ink active:bg-panel2',
   soft: 'bg-panel2 text-ink active:bg-line',
   danger: 'bg-bad/15 text-bad border border-bad/40 active:bg-bad/25',

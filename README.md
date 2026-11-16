@@ -1,6 +1,6 @@
 # Träning – gym + löpning mot Göteborgsvarvet 2027
 
-Personlig PWA för att logga gym- och löppass och följa en färdig plan med automatisk viktprogression.
+Personlig PWA för att logga gym-, löp- och simpass och följa en färdig plan med automatisk viktprogression.
 Fungerar helt offline, all data ligger lokalt i telefonen (IndexedDB).
 
 ## Kom igång lokalt
@@ -50,7 +50,7 @@ Appen påminner var 14:e dag. Import ersätter all data med filens innehåll.
 2. Intervals.icu → Settings → Developer Settings → skapa en API-nyckel.
 3. I appen: **Mer → Löppass från klockan** → klistra in nyckeln → **Spara och synka**.
 
-Appen hämtar nya löppass när den öppnas (högst var 10:e minut, eller med **Synka** på Idag),
+Appen hämtar nya löp- och simpass när den öppnas (högst var 10:e minut, eller med **Synka** på Idag),
 kopplar dem till rätt planerat pass (samma dag, annars närmaste ogjorda pass inom ±2 dagar)
 och slår ihop dem med pass du redan loggat för hand. Testlopp importeras med hela passets
 tid, så appen ber dig fylla i själva 5/10 km-tiden innan tröskelfarten uppdateras.

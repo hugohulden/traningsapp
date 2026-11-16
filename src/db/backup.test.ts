@@ -45,10 +45,12 @@ describe('historikimport', () => {
       data: {
         runs: [{ id: 'garmin-1', date: '2026-11-03', weekIndex: -2, plannedKey: null, category: 'lugn', distanceKm: 8.2, durationSec: 3280, surface: 'ute', notes: '', source: 'garmin', externalId: 'garmin:1', createdAt: 2 }],
         gymSessions: [],
+        swims: [{ id: 'garmin-2', date: '2026-11-14', weekIndex: -1, distanceM: 800, durationSec: 1545, pool: 'bassang', notes: '', source: 'garmin', createdAt: 3 }],
       },
     };
-    expect(await mergeHistory(d, file)).toEqual({ runs: 1, gym: 0 });
-    expect(await mergeHistory(d, file)).toEqual({ runs: 0, gym: 0 });
+    expect(await mergeHistory(d, file)).toEqual({ runs: 1, gym: 0, swims: 1 });
+    expect(await mergeHistory(d, file)).toEqual({ runs: 0, gym: 0, swims: 0 });
+    expect(await d.swims.count()).toBe(1);
     expect(await d.runs.count()).toBe(2);
   });
 });

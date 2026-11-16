@@ -48,15 +48,22 @@ export async function importAll(db: AppDB, file: unknown): Promise<void> {
 export const HISTORY_FORMAT = 'traningsapp-historik';
 
 /** Lägger till historik (löppass, gympass, invägningar) utan att radera något. Samma fil kan läsas in flera gånger. */
-export async function mergeHistory(db: AppDB, file: unknown): Promise<{ runs: number; gym: number }> {
+export async function mergeHistory(db: AppDB, file: unknown): Promise<{ runs: number; gym: number; swims: number }> {
   const f = file as { format?: string; data?: Record<string, unknown[]> };
   if (!f || f.format !== HISTORY_FORMAT || typeof f.data !== 'object') throw new Error('Filen är inte en historikfil.');
   const runs = (f.data.runs ?? []) as { id: string; externalId?: string }[];
   const gym = (f.data.gymSessions ?? []) as { id: string }[];
   const weighs = (f.data.weighIns ?? []) as { date: string }[];
+  const swims = (f.data.swims ?? []) as { id: string }[];
   let r = 0;
   let g = 0;
-  await db.transaction('rw', db.runs, db.gymSessions, db.weighIns, async () => {
+  let sw = 0;
+  await db.transaction('rw', [db.runs, db.gymSessions, db.weighIns, db.swims], async () => {
+    for (const x of swims) {
+      if (await db.swims.get(x.id)) continue;
+      await db.swims.put(x as never);
+      sw++;
+    }
     for (const run of runs) {
       if (await db.runs.get(run.id)) continue;
       await db.runs.put(run as never);
@@ -69,5 +76,5 @@ export async function mergeHistory(db: AppDB, file: unknown): Promise<{ runs: nu
     }
     for (const w of weighs) if (!(await db.weighIns.get(w.date))) await db.weighIns.put(w as never);
   });
-  return { runs: r, gym: g };
+  return { runs: r, gym: g, swims: sw };
 }

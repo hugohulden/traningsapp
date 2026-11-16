@@ -66,6 +66,40 @@ export function toImportedRun(a: IntervalsActivity): ImportedRun | null {
   };
 }
 
+export interface ImportedSwim {
+  externalId: string;
+  date: string;
+  distanceM: number;
+  durationSec: number;
+  avgHr?: number;
+  maxHr?: number;
+  rpe?: number;
+  pool: 'bassang' | 'oppet';
+  name: string;
+}
+
+export function isSwim(a: IntervalsActivity): boolean {
+  return !!a.type && /swim/i.test(a.type);
+}
+
+export function toImportedSwim(a: IntervalsActivity): ImportedSwim | null {
+  if (!isSwim(a) || !a.distance) return null;
+  const durationSec = a.moving_time || a.elapsed_time || 0;
+  if (!durationSec) return null;
+  const rpe = a.icu_rpe ?? a.perceived_exertion;
+  return {
+    externalId: `intervals:${a.id}`,
+    date: a.start_date_local.slice(0, 10),
+    distanceM: Math.round(a.distance),
+    durationSec: Math.round(durationSec),
+    avgHr: a.average_heartrate ? Math.round(a.average_heartrate) : undefined,
+    maxHr: a.max_heartrate ? Math.round(a.max_heartrate) : undefined,
+    rpe: rpe && rpe >= 1 && rpe <= 10 ? Math.round(rpe) : undefined,
+    pool: /open/i.test(a.type ?? '') ? 'oppet' : 'bassang',
+    name: a.name ?? '',
+  };
+}
+
 function dayDiff(a: string, b: string): number {
   const p = (d: string) => {
     const [y, m, dd] = d.split('-').map(Number);

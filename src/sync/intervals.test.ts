@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDuplicateOf, matchPlanned, toImportedRun, type IntervalsActivity } from './intervals';
+import { isDuplicateOf, matchPlanned, toImportedRun, toImportedSwim, type IntervalsActivity } from './intervals';
 import { getWeekPlan } from '../engine/planGenerator';
 import { DEFAULT_SETTINGS } from '../plan/settings';
 
@@ -56,5 +56,17 @@ describe('koppling till planen', () => {
     expect(isDuplicateOf(r, [{ date: '2026-11-17', distanceKm: 12 }])).toBeFalsy();
     expect(isDuplicateOf(r, [{ date: '2026-11-17', distanceKm: 8, externalId: 'intervals:x' }])).toBeFalsy();
     expect(isDuplicateOf(r, [{ date: '2026-11-17', distanceKm: 8, externalId: 'garmin:123' }])).toBeTruthy();
+  });
+});
+
+describe('simning', () => {
+  it('simpass blir ett simpass med meter, tid och puls', () => {
+    const w = toImportedSwim(act({ type: 'Swim', distance: 800, moving_time: 1545, average_heartrate: 132 }))!;
+    expect(w).toMatchObject({ externalId: 'intervals:1', distanceM: 800, durationSec: 1545, avgHr: 132, pool: 'bassang' });
+    expect(toImportedSwim(act({ type: 'OpenWaterSwim', distance: 1500 }))!.pool).toBe('oppet');
+  });
+  it('simning blir inte löppass och löpning inte simpass', () => {
+    expect(toImportedRun(act({ type: 'Swim' }))).toBeNull();
+    expect(toImportedSwim(act({}))).toBeNull();
   });
 });

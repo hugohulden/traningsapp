@@ -11,6 +11,7 @@
   --color-run: #43d3f5;
   --color-warn: #fbbf24;
   --color-bad: #fb7185;
+  --color-swim: #a78bfa;
   --color-onaccent: #000000;
   --font-sans: ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
 }
@@ -26,6 +27,7 @@
   --color-run: #0369a1;
   --color-warn: #b45309;
   --color-bad: #dc2626;
+  --color-swim: #6d28d9;
   --color-onaccent: #ffffff;
   color-scheme: light;
 }
