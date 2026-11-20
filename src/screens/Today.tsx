@@ -239,7 +239,7 @@ function RestartPrompt({ idx, day }: { idx: number; day: string }) {
       <div className="text-sm text-mute mt-1">
         Förslag: upprepa förra veckans plan på 75 % av veckomålet. Loppdatumet ligger kvar och fas 2 kortas i stället.
       </div>
-      <div className="grid grid-cols-3 gap-2 mt-3">
+      <div className="grid grid-cols-2 gap-2 mt-3">
         <Button kind="primary" onClick={() => saveSettings({ missedWeeks: [...s.missedWeeks, { index: idx - 1, restart: true }] })}>
           Starta om
         </Button>
@@ -315,12 +315,12 @@ function QuickBody({ day }: { day: string }) {
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2 mt-3">
-        <Button kind={todayW && kg == null ? 'ghost' : 'soft'} onClick={() => db.weighIns.put({ date: day, kg: val }).then(() => setKg(null))}>
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        <Button className="whitespace-nowrap px-1 text-sm" kind={todayW && kg == null ? 'ghost' : 'soft'} onClick={() => db.weighIns.put({ date: day, kg: val }).then(() => setKg(null))}>
           {todayW && kg == null ? '✓ Invägd' : 'Spara vikt'}
         </Button>
         {(['kreatin', 'magnesium'] as const).map((k) => (
-          <Button key={k} className="px-2" kind={supp?.[k] ? 'primary' : 'soft'} onClick={() => db.supplements.put({ ...(supp ?? { date: day }), [k]: !supp?.[k] })}>
+          <Button key={k} className="whitespace-nowrap px-1 text-sm" kind={supp?.[k] ? 'primary' : 'soft'} onClick={() => db.supplements.put({ ...(supp ?? { date: day }), [k]: !supp?.[k] })}>
             {supp?.[k] ? '✓ ' : ''}
             {k === 'kreatin' ? 'Kreatin' : 'Magnesium'}
           </Button>
