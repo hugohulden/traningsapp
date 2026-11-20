@@ -50,7 +50,7 @@ export async function importAll(db: AppDB, file: unknown): Promise<void> {
 export const HISTORY_FORMAT = 'traningsapp-historik';
 
 /** Lägger till historik (löppass, gympass, invägningar) utan att radera något. Samma fil kan läsas in flera gånger. */
-export async function mergeHistory(db: AppDB, file: unknown): Promise<{ runs: number; gym: number; swims: number; recipes: number }> {
+export async function mergeHistory(db: AppDB, file: unknown): Promise<{ runs: number; gym: number; swims: number; recipes: number; food: number }> {
   const f = file as { format?: string; data?: Record<string, unknown[]> };
   if (!f || f.format !== HISTORY_FORMAT || typeof f.data !== 'object') throw new Error('Filen är inte en historikfil.');
   const runs = (f.data.runs ?? []) as { id: string; externalId?: string }[];
@@ -58,11 +58,21 @@ export async function mergeHistory(db: AppDB, file: unknown): Promise<{ runs: nu
   const weighs = (f.data.weighIns ?? []) as { date: string }[];
   const swims = (f.data.swims ?? []) as { id: string }[];
   const recipes = (f.data.recipes ?? []) as { id: string }[];
+  const foodLog = (f.data.foodLog ?? []) as { id: string }[];
+  const foods = (f.data.foods ?? []) as { id: string }[];
   let rc = 0;
+  let fl = 0;
   let r = 0;
   let g = 0;
   let sw = 0;
-  await db.transaction('rw', [db.runs, db.gymSessions, db.weighIns, db.swims, db.recipes], async () => {
+  await db.transaction('rw', [db.runs, db.gymSessions, db.weighIns, db.swims, db.recipes, db.foodLog, db.foods], async () => {
+    // Måltider (loggrader) och livsmedel för "Senast ätna".
+    for (const x of foodLog) {
+      if (await db.foodLog.get(x.id)) continue;
+      await db.foodLog.put(x as never);
+      fl++;
+    }
+    for (const x of foods) if (!(await db.foods.get(x.id))) await db.foods.put(x as never);
     // Rätter och matlådesatser (läggs bara till om de inte redan finns).
     for (const x of recipes) {
       if (await db.recipes.get(x.id)) continue;
@@ -86,5 +96,5 @@ export async function mergeHistory(db: AppDB, file: unknown): Promise<{ runs: nu
     }
     for (const w of weighs) if (!(await db.weighIns.get(w.date))) await db.weighIns.put(w as never);
   });
-  return { runs: r, gym: g, swims: sw, recipes: rc };
+  return { runs: r, gym: g, swims: sw, recipes: rc, food: fl };
 }

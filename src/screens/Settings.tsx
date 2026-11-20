@@ -133,7 +133,7 @@ export function SettingsScreen() {
                 const json = JSON.parse(await f.text());
                 if (json?.format === HISTORY_FORMAT) {
                   const r = await mergeHistory(db, json);
-                  setMsg(`Inläst: ${[r.runs && `${r.runs} löppass`, r.gym && `${r.gym} gympass`, r.swims && `${r.swims} simpass`, r.recipes && `${r.recipes} ${r.recipes === 1 ? 'rätt/matlåda' : 'rätter/matlådor'}`].filter(Boolean).join(', ') || 'inget nytt (redan inläst)'}.`);
+                  setMsg(`Inläst: ${[r.runs && `${r.runs} löppass`, r.gym && `${r.gym} gympass`, r.swims && `${r.swims} simpass`, r.recipes && `${r.recipes} ${r.recipes === 1 ? 'rätt/matlåda' : 'rätter/matlådor'}`, r.food && `${r.food} rader mat`].filter(Boolean).join(', ') || 'inget nytt (redan inläst)'}.`);
                   return;
                 }
                 if (!(await ask('Importen ersätter ALL data i appen med innehållet i filen. Fortsätta?', { ok: 'Ersätt', danger: true }))) return;

@@ -6,3 +6,4 @@ dist-artifact
 src/seed/*.json
 historik-*.json
 matlada-*.json
+matlogg-*.json
