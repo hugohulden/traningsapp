@@ -1,9 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import './index.css';
 import { applyStoredTheme } from './ui/theme';
+import { startUpdates } from './ui/update';
 
 applyStoredTheme();
 import { db } from './db/db';
@@ -15,7 +15,7 @@ if (import.meta.env.VITE_SEED) {
   for (const f of Object.values(files)) void mergeHistory(db, f).catch(() => {});
 }
 
-if (!import.meta.env.VITE_NO_SW) registerSW({ immediate: true });
+startUpdates();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

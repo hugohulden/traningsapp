@@ -13,6 +13,7 @@ import { ZONES } from '../plan/config';
 import { Button, Card, Field, Header, Segmented, Sheet, inputCls } from '../ui/ui';
 import { syncIntervals } from '../sync/sync';
 import { ask } from '../ui/confirm';
+import { BUILD_TIME, checkForUpdate } from '../ui/update';
 
 export async function exportBackupFile() {
   const data = await exportAll(db);
@@ -106,6 +107,7 @@ export function SettingsScreen() {
           />
           <div className="mt-2 text-xs text-mute">Auto följer telefonens inställning för ljust/mörkt läge.</div>
         </Card>
+        <UpdateCard />
         <FoodSettingsCard />
         <Card>
           <div className="font-semibold mb-3">Backup</div>
@@ -393,6 +395,41 @@ function FoodSettingsCard() {
       </div>
       {sum !== 100 && <div className="mt-2 text-sm text-warn">Summan är {sum} % – den bör vara 100 %.</div>}
 
+    </Card>
+  );
+}
+
+/** Visar vilken version appen kör och låter dig söka efter en ny. */
+function UpdateCard() {
+  const [state, setState] = useState<'' | 'söker' | 'ny' | 'senaste' | 'fel'>('');
+  const built = BUILD_TIME ? new Date(BUILD_TIME) : null;
+  const label = built
+    ? `${built.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} kl. ${built.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`
+    : 'okänd';
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-semibold">Appversion</div>
+          <div className="text-sm text-mute">Från {label}</div>
+          {state === 'senaste' && <div className="text-sm text-accent">Du har senaste versionen.</div>}
+          {state === 'ny' && <div className="text-sm text-accent">Ny version hittad – appen laddas om…</div>}
+          {state === 'fel' && <div className="text-sm text-warn">Kunde inte söka just nu (saknas nät?).</div>}
+        </div>
+        <Button
+          kind="soft"
+          className="shrink-0 text-sm"
+          disabled={state === 'söker'}
+          onClick={async () => {
+            setState('söker');
+            const r = await checkForUpdate();
+            setState(r);
+            if (r === 'ny') setTimeout(() => location.reload(), 4000);
+          }}
+        >
+          {state === 'söker' ? 'Söker…' : 'Sök efter uppdatering'}
+        </Button>
+      </div>
     </Card>
   );
 }
