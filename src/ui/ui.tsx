@@ -108,7 +108,7 @@ export function Sheet({ open, onClose, title, children, onBack }: { open: boolea
 
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <div className="mb-1 text-sm text-mute">{label}</div>
       {children}
       {hint && <div className="mt-1 text-xs text-mute">{hint}</div>}
@@ -116,7 +116,7 @@ export function Field({ label, children, hint }: { label: string; children: Reac
   );
 }
 
-export const inputCls = 'w-full min-h-12 rounded-xl bg-panel2 border border-line px-3 text-lg outline-none focus:border-accent';
+export const inputCls = 'w-full min-w-0 min-h-12 rounded-xl bg-panel2 border border-line px-3 text-lg outline-none focus:border-accent';
 
 export function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
   return (

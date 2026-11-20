@@ -47,6 +47,15 @@ body {
 }
 @layer base {
   input, select, textarea, button { font: inherit; color: inherit; }
+  /* iOS Safari ger datumfält en fast minsta bredd – låt dem krympa som andra fält. */
+  input[type="date"], input[type="time"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input::-webkit-date-and-time-value { text-align: left; margin: 0; }
 }
 input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 .safe-top { padding-top: max(env(safe-area-inset-top), 12px); }
