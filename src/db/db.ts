@@ -179,6 +179,13 @@ export interface FoodDayRec {
   burnedKcal: number;
 }
 
+/** Tillskott tagna en dag (bockas av på Idag). */
+export interface SupplementDay {
+  date: string;
+  kreatin?: boolean;
+  magnesium?: boolean;
+}
+
 export interface WeighIn {
   date: string;
   kg: number;
@@ -210,6 +217,7 @@ export class AppDB extends Dexie {
   foods!: Table<FoodRec, string>;
   recipes!: Table<RecipeRec, string>;
   foodDays!: Table<FoodDayRec, string>;
+  supplements!: Table<SupplementDay, string>;
   weighIns!: Table<WeighIn, string>;
   protein!: Table<ProteinDay, string>;
   customExercises!: Table<ExerciseDef, string>;
@@ -236,12 +244,14 @@ export class AppDB extends Dexie {
       recipes: 'id, lastUsedAt',
       foodDays: 'date',
     });
+    // v4: tillskott (kreatin, magnesium)
+    this.version(4).stores({ supplements: 'date' });
   }
 }
 
 export const db = new AppDB();
 
-export const TABLES = ['gymSessions', 'runs', 'swims', 'foodLog', 'foods', 'recipes', 'foodDays', 'weighIns', 'protein', 'customExercises', 'thresholds', 'kv'] as const;
+export const TABLES = ['gymSessions', 'runs', 'swims', 'foodLog', 'foods', 'recipes', 'foodDays', 'supplements', 'weighIns', 'protein', 'customExercises', 'thresholds', 'kv'] as const;
 
 export function uid(): string {
   return (crypto as Crypto & { randomUUID?: () => string }).randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;

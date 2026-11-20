@@ -22,6 +22,7 @@ describe('export/import', () => {
     await a.recipes.put({ id: 'rec1', name: 'Kycklinggryta', ingredients: [{ name: 'Kyckling', grams: 800, per100: { kcal: 116 } }], portions: 4, updatedAt: 1 });
     await a.foods.put({ id: 'off:123', source: 'egen', name: 'Bar', barcode: '123', per100: { kcal: 360 }, saved: true, updatedAt: 1 });
     await a.foodDays.put({ date: '2026-11-20', burnedKcal: 3400 });
+    await a.supplements.put({ date: '2026-11-20', kreatin: true });
 
     const file = JSON.parse(JSON.stringify(await exportAll(a)));
     const b = new AppDB('test-b');
@@ -34,6 +35,7 @@ describe('export/import', () => {
     expect(await b.recipes.get('rec1')).toMatchObject({ portions: 4 });
     expect(await b.foods.where('barcode').equals('123').count()).toBe(1);
     expect(await b.foodDays.get('2026-11-20')).toMatchObject({ burnedKcal: 3400 });
+    expect(await b.supplements.get('2026-11-20')).toMatchObject({ kreatin: true });
 
   });
 

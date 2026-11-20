@@ -239,7 +239,7 @@ function RestartPrompt({ idx, day }: { idx: number; day: string }) {
       <div className="text-sm text-mute mt-1">
         Förslag: upprepa förra veckans plan på 75 % av veckomålet. Loppdatumet ligger kvar och fas 2 kortas i stället.
       </div>
-      <div className="grid grid-cols-2 gap-2 mt-3">
+      <div className="grid grid-cols-3 gap-2 mt-3">
         <Button kind="primary" onClick={() => saveSettings({ missedWeeks: [...s.missedWeeks, { index: idx - 1, restart: true }] })}>
           Starta om
         </Button>
@@ -291,7 +291,7 @@ function VolumePrompt({ idx, phase }: { idx: number; phase: number | null }) {
 
 function QuickBody({ day }: { day: string }) {
   const weighs = useLiveQuery(() => db.weighIns.toArray(), []);
-  const protein = useLiveQuery(() => db.protein.get(day), [day]);
+  const supp = useLiveQuery(() => db.supplements.get(day), [day]);
   const todayW = weighs?.find((w) => w.date === day);
   const last = weighs?.length ? [...weighs].sort((a, b) => a.date.localeCompare(b.date))[weighs.length - 1] : null;
   const [kg, setKg] = useState<number | null>(null);
@@ -319,9 +319,12 @@ function QuickBody({ day }: { day: string }) {
         <Button kind={todayW && kg == null ? 'ghost' : 'soft'} onClick={() => db.weighIns.put({ date: day, kg: val }).then(() => setKg(null))}>
           {todayW && kg == null ? '✓ Invägd' : 'Spara vikt'}
         </Button>
-        <Button kind={protein?.done ? 'primary' : 'soft'} onClick={() => db.protein.put({ date: day, done: !protein?.done })}>
-          {protein?.done ? '✓ Proteinmål' : 'Proteinmål nått'}
-        </Button>
+        {(['kreatin', 'magnesium'] as const).map((k) => (
+          <Button key={k} className="px-2" kind={supp?.[k] ? 'primary' : 'soft'} onClick={() => db.supplements.put({ ...(supp ?? { date: day }), [k]: !supp?.[k] })}>
+            {supp?.[k] ? '✓ ' : ''}
+            {k === 'kreatin' ? 'Kreatin' : 'Magnesium'}
+          </Button>
+        ))}
       </div>
     </Card>
   );
