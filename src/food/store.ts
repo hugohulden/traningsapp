@@ -14,7 +14,7 @@ export function pickName(p: Pick): string {
 
 /** Vad en portion heter för varan ("st", "skiva" … eller "portion"). */
 export function pickUnit(p: Pick): string {
-  return p.kind === 'food' ? (p.food.unitLabel ?? 'portion') : 'portion';
+  return p.kind === 'food' ? (p.food.unitLabel ?? 'portion') : p.recipe.batch ? 'låda' : 'portion';
 }
 
 export function pickServingG(p: Pick): number | undefined {
@@ -30,7 +30,7 @@ export function pickNutrients(p: Pick, a: Amount): Nutrients | null {
 
 /** Förifylld mängd: senaste gången, annars en portion, annars 100 g. */
 export function defaultAmount(p: Pick): Amount {
-  if (p.kind === 'recipe') return p.recipe.lastAmount ?? { unit: 'portion', value: 1 };
+  if (p.kind === 'recipe') return p.recipe.batch ? { unit: 'portion', value: 1 } : (p.recipe.lastAmount ?? { unit: 'portion', value: 1 });
   return p.food.lastAmount ?? (p.food.servingG ? { unit: 'portion', value: 1 } : { unit: 'g', value: 100 });
 }
 
@@ -44,6 +44,8 @@ export async function logPick(p: Pick, amount: Amount, meal: Meal, dates: string
   if (!n) throw new Error('Mängden saknar vikt.');
   const now = Date.now();
   const ids: string[] = [];
+  // Matlåda: hur många lådor varje loggning tar ur satsen.
+  const boxes = p.kind === 'recipe' && p.recipe.batch ? boxesFor(p.recipe, amount) : undefined;
   await db.transaction('rw', [db.foodLog, db.foods, db.recipes], async () => {
     for (const date of dates) {
       const rec: FoodLogRec = {
@@ -55,7 +57,7 @@ export async function logPick(p: Pick, amount: Amount, meal: Meal, dates: string
         amount,
         servingG: pickServingG(p),
         unitLabel: pickUnit(p) === 'portion' ? undefined : pickUnit(p),
-        ref: p.kind === 'food' ? { kind: 'food', id: p.food.id } : { kind: 'recipe', id: p.recipe.id },
+        ref: p.kind === 'food' ? { kind: 'food', id: p.food.id } : { kind: 'recipe', id: p.recipe.id, boxes },
         createdAt: now,
       };
       await db.foodLog.put(rec);
@@ -66,6 +68,7 @@ export async function logPick(p: Pick, amount: Amount, meal: Meal, dates: string
       await db.foods.put(withUnit({ ...p.food, ...(cur ?? {}), lastAmount: amount, lastUsedAt: now, updatedAt: now }));
     } else {
       await db.recipes.update(p.recipe.id, { lastAmount: amount, lastUsedAt: now });
+      if (boxes) await adjustBoxes(p.recipe.id, -boxes * dates.length);
     }
   });
   return ids;
@@ -79,18 +82,66 @@ export async function logQuick(kcal: number, text: string, meal: Meal, date: str
 }
 
 export async function updateLog(id: string, patch: Partial<FoodLogRec>) {
-  await db.foodLog.update(id, patch);
+  await db.transaction('rw', [db.foodLog, db.recipes], async () => {
+    const cur = await db.foodLog.get(id);
+    // Ändrad mängd på en matlåda: justera hur många lådor som är kvar.
+    if (cur?.ref.boxes && cur.ref.id && patch.amount && cur.amount && cur.amount.value > 0) {
+      const boxes = Math.round(cur.ref.boxes * (patch.amount.value / cur.amount.value) * 100) / 100;
+      await adjustBoxes(cur.ref.id, cur.ref.boxes - boxes);
+      patch = { ...patch, ref: { ...cur.ref, boxes } };
+    }
+    await db.foodLog.update(id, patch);
+  });
 }
 
+/** Tar bort loggrader. Matlådor läggs tillbaka i satsen. */
 export async function deleteLogs(ids: string[]) {
-  await db.foodLog.bulkDelete(ids);
+  await db.transaction('rw', [db.foodLog, db.recipes], async () => {
+    const rows = (await db.foodLog.bulkGet(ids)).filter((r): r is FoodLogRec => !!r);
+    for (const r of rows) if (r.ref.boxes && r.ref.id) await adjustBoxes(r.ref.id, r.ref.boxes);
+    await db.foodLog.bulkDelete(ids);
+  });
+}
+
+/** Lägger tillbaka borttagna rader (Ångra). */
+export async function restoreLogs(rows: FoodLogRec[]) {
+  await db.transaction('rw', [db.foodLog, db.recipes], async () => {
+    for (const r of rows) if (r.ref.boxes && r.ref.id) await adjustBoxes(r.ref.id, -r.ref.boxes);
+    await db.foodLog.bulkPut(rows);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Matlådor
+// ---------------------------------------------------------------------------
+
+/** Antal lådor en mängd motsvarar (1 portion = 1 låda). */
+export function boxesFor(r: RecipeRec, a: Amount): number {
+  const n = a.unit === 'portion' ? a.value : a.value / recipeServingG(r);
+  return Math.round(n * 100) / 100;
+}
+
+/** Ändrar antal kvar i en sats (negativt = äts). Håller sig mellan 0 och antalet lådor. */
+export async function adjustBoxes(recipeId: string, delta: number) {
+  const r = await db.recipes.get(recipeId);
+  if (!r?.batch) return;
+  const left = Math.max(0, Math.min(r.batch.total, Math.round((r.batch.left + delta) * 100) / 100));
+  await db.recipes.update(recipeId, { batch: { ...r.batch, left } });
+}
+
+/** Laga samma sats igen: alla lådor kvar, dagens datum. */
+export async function cookAgain(recipeId: string, madeAt: string) {
+  const r = await db.recipes.get(recipeId);
+  if (!r) return;
+  const total = r.batch?.total ?? r.portions;
+  await db.recipes.update(recipeId, { batch: { total, left: total, madeAt } });
 }
 
 /** Kopierar en måltid (eller hela dagen om meal är null) till en annan dag. */
 export async function copyLogs(from: string, to: string, meal: Meal | null, toMeal?: Meal): Promise<number> {
   const rows = (await db.foodLog.where('date').equals(from).toArray()).filter((r) => !meal || r.meal === meal);
   const now = Date.now();
-  await db.foodLog.bulkPut(rows.map((r, i) => ({ ...r, id: uid(), date: to, meal: toMeal ?? r.meal, createdAt: now + i })));
+  await restoreLogs(rows.map((r, i) => ({ ...r, id: uid(), date: to, meal: toMeal ?? r.meal, createdAt: now + i })));
   return rows.length;
 }
 
@@ -142,15 +193,21 @@ export async function isFavorite(p: Pick): Promise<boolean> {
 }
 
 /** Senast ätna och favoriter (livsmedel och rätter), nyast först. */
-export async function recentAndFavorites(): Promise<{ recent: Pick[]; favorites: Pick[] }> {
+export async function recentAndFavorites(): Promise<{ recent: Pick[]; favorites: Pick[]; batches: Pick[] }> {
   const foods = await db.foods.toArray();
   const recipes = await db.recipes.toArray();
   const all: (Pick & { t: number; fav: boolean })[] = [
     ...foods.map((f) => ({ kind: 'food' as const, food: withUnit(f), t: f.lastUsedAt ?? 0, fav: !!f.favorite })),
     ...recipes.map((r) => ({ kind: 'recipe' as const, recipe: r, t: r.lastUsedAt ?? 0, fav: !!r.favorite })),
   ];
+  const isBatch = (x: Pick) => x.kind === 'recipe' && !!x.recipe.batch;
   return {
-    recent: all.filter((x) => x.t > 0).sort((a, b) => b.t - a.t).slice(0, 30),
+    // Matlådor med lådor kvar, äldsta satsen först (ät den innan den blir gammal).
+    batches: recipes
+      .filter((r) => r.batch && r.batch.left > 0)
+      .sort((a, b) => a.batch!.madeAt.localeCompare(b.batch!.madeAt))
+      .map((r) => ({ kind: 'recipe' as const, recipe: r })),
+    recent: all.filter((x) => x.t > 0 && !isBatch(x)).sort((a, b) => b.t - a.t).slice(0, 30),
     favorites: all.filter((x) => x.fav).sort((a, b) => pickName(a).localeCompare(pickName(b), 'sv')),
   };
 }

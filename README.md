@@ -71,5 +71,6 @@ Fliken **Mat** visar dagens kalorier mot målet, makron och måltiderna. Logga m
 - **Styckvaror** som ägg, banan, äpple, brödskivor och potatis kan loggas i antal ("2 st ägg ≈ 100 g"). Vikterna är ungefärliga och står i `FOOD.units` i `src/plan/config.ts`.
 - **Snabbval**: ett tryck loggar samma mängd som förra gången. **Kcal**: bara ett kcal-tal.
 - **Rätter** (knappen uppe till höger): lägg ihop ingredienser, ange portioner (och gärna färdig vikt), logga sedan en portion – även flera dagar på en gång för matlådor.
+- **Matlådor** (fliken i Mat): lägg in allt i den stora satsen, ange antal lådor och tryck **Ät en** – lådan loggas och räknas ner tills satsen är slut. Lådorna finns också överst i **+ → Snabbval**. Ångrar du en loggning kommer lådan tillbaka; **Laga igen** fyller på en sats som tagit slut.
 
 Livsmedelsdata: © Livsmedelsverket, livsmedelsdatabasen (CC BY 4.0). Uppdatera med `python3 scripts/build_livsmedel.py`. Märkesvaror: Open Food Facts (ODbL).

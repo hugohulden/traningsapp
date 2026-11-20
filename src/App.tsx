@@ -16,7 +16,7 @@ import { useTheme } from './ui/theme';
 import { Icons } from './ui/icons';
 
 export type Tab = 'idag' | 'mat' | 'plan' | 'stat' | 'kropp' | 'mer';
-export type Screen = { name: 'gym'; id: string } | { name: 'week'; index: number } | { name: 'recipes' } | { name: 'recipe'; id?: string };
+export type Screen = { name: 'gym'; id: string } | { name: 'week'; index: number } | { name: 'recipes' } | { name: 'recipe'; id?: string; batch?: boolean };
 
 interface Nav {
   push: (s: Screen) => void;
@@ -87,7 +87,7 @@ export default function App() {
           ) : top.name === 'recipes' ? (
             <RecipesScreen />
           ) : (
-            <RecipeEditor key={top.id ?? 'ny'} id={top.id} />
+            <RecipeEditor key={top.id ?? 'ny'} id={top.id} batch={top.batch} />
           )
         ) : (
           <div className="pb-28" key={theme}>

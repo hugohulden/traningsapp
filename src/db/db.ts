@@ -152,6 +152,8 @@ export interface RecipeRec {
   favorite?: boolean;
   lastAmount?: Amount;
   lastUsedAt?: number;
+  /** Matlådesats: hur många lådor satsen blev och hur många som är kvar. */
+  batch?: { total: number; left: number; madeAt: string };
   updatedAt: number;
 }
 
@@ -167,7 +169,7 @@ export interface FoodLogRec {
   servingG?: number;
   /** Vad en portion heter ("st", "skiva" …). */
   unitLabel?: string;
-  ref: { kind: 'food' | 'recipe' | 'quick'; id?: string };
+  ref: { kind: 'food' | 'recipe' | 'quick'; id?: string; /** Antal matlådor raden tog ur satsen. */ boxes?: number };
   createdAt: number;
 }
 

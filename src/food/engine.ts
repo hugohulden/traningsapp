@@ -186,7 +186,7 @@ export function offToFood(p: OffProduct, barcode?: string) {
 // ---------------------------------------------------------------------------
 
 
-const PLURAL: Record<string, string> = { st: 'st', skiva: 'skivor', glas: 'glas', dl: 'dl', klyfta: 'klyftor', filé: 'filéer', bit: 'bitar', klick: 'klickar', portion: 'portioner' };
+const PLURAL: Record<string, string> = { st: 'st', skiva: 'skivor', glas: 'glas', dl: 'dl', klyfta: 'klyftor', filé: 'filéer', bit: 'bitar', klick: 'klickar', portion: 'portioner', låda: 'lådor' };
 
 /** "1 st", "2 skivor", "1,5 portioner" */
 export function unitText(n: number, unit = 'portion'): string {

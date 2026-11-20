@@ -208,7 +208,7 @@ function SearchPane({ onSelect, onNewFood }: { onSelect: (p: Pick) => void; onNe
     if (!term || !personal) return null;
     // Dina egna, sparade rätter och senast ätna först.
     const mine: (Pick & { name: string; tag: string; t: number })[] = [
-      ...personal.recipes.map((r) => ({ kind: 'recipe' as const, recipe: r, name: r.name, tag: 'Rätt', t: r.lastUsedAt ?? 1 })),
+      ...personal.recipes.map((r) => ({ kind: 'recipe' as const, recipe: r, name: r.name, tag: r.batch ? (r.batch.left > 0 ? `Låda · ${num(r.batch.left, 1)} kvar` : 'Låda · slut') : 'Rätt', t: r.lastUsedAt ?? 1 })),
       ...personal.foods
         .filter((f) => f.saved || f.lastUsedAt || f.favorite)
         .map((f) => ({ kind: 'food' as const, food: withUnit(f), name: f.name, tag: f.saved ? 'Egen' : f.favorite ? '★' : 'Senast', t: f.lastUsedAt ?? 0 })),
@@ -293,7 +293,8 @@ function QuickPane({ mode, meal, date, onSelect }: { mode: 'log' | 'pick'; meal:
     if (!pickNutrients(p, a)) return onSelect(p);
     const ids = await logPick(p, a, meal, [date]);
     setDone((s) => new Set(s).add(key(p)));
-    toast(`${pickName(p)} loggad i ${MEAL_NAMES[meal].toLowerCase()}`, () => void deleteLogs(ids));
+    const left = p.kind === 'recipe' && p.recipe.batch ? Math.max(0, p.recipe.batch.left - 1) : null;
+    toast(`${pickName(p)} loggad i ${MEAL_NAMES[meal].toLowerCase()}${left != null ? ` · ${left ? `${num(left, 1)} kvar` : 'satsen är slut'}` : ''}`, () => void deleteLogs(ids));
   }
 
   const row = (p: Pick) => {
@@ -303,9 +304,13 @@ function QuickPane({ mode, meal, date, onSelect }: { mode: 'log' | 'pick'; meal:
     return (
       <ItemRow
         key={k}
-        tag={p.kind === 'recipe' ? 'Rätt' : undefined}
+        tag={p.kind === 'recipe' ? (p.recipe.batch ? 'Låda' : 'Rätt') : undefined}
         title={pickName(p)}
-        sub={`${amountStr(a, pickServingG(p), pickUnit(p))}${n ? ` · ${kcalStr(n.kcal)} kcal` : ''}`}
+        sub={
+          p.kind === 'recipe' && p.recipe.batch
+            ? `1 låda · ${n ? `${kcalStr(n.kcal)} kcal · ` : ''}${num(p.recipe.batch.left, 1)} av ${p.recipe.batch.total} kvar`
+            : `${amountStr(a, pickServingG(p), pickUnit(p))}${n ? ` · ${kcalStr(n.kcal)} kcal` : ''}`
+        }
         right={done.has(k) ? <span className="font-bold text-accent">✓</span> : <span className="text-2xl leading-none text-accent">+</span>}
         onClick={() => void quickLog(p)}
         onSide={() => onSelect(p)}
@@ -314,12 +319,13 @@ function QuickPane({ mode, meal, date, onSelect }: { mode: 'log' | 'pick'; meal:
     );
   };
 
-  if (!lists.recent.length && !lists.favorites.length)
+  if (!lists.recent.length && !lists.favorites.length && !lists.batches.length)
     return <div className="py-6 text-center text-sm text-mute">Här hamnar det du ätit senast och dina favoriter (★). Sök eller skanna för att börja.</div>;
 
   return (
     <div>
       {mode === 'log' && <div className="text-xs text-mute">Tryck på en rad för att logga samma mängd som förra gången. ✎ ändrar mängden.</div>}
+      {lists.batches.length > 0 && <Section title="Matlådor">{lists.batches.map(row)}</Section>}
       {lists.favorites.length > 0 && <Section title="Favoriter">{lists.favorites.map(row)}</Section>}
       {lists.recent.length > 0 && <Section title="Senast ätna">{lists.recent.map(row)}</Section>}
     </div>
@@ -408,7 +414,7 @@ function AmountView({
   const canPortion = pick.kind === 'recipe' || !!servingG;
   // Styckvaror (ägg, banan, brödskiva …) räknas i hela; övriga portioner i halvor.
   const unitWord = pickUnit(pick);
-  const countable = ['st', 'skiva', 'klyfta', 'filé', 'bit', 'klick'].includes(unitWord);
+  const countable = ['st', 'skiva', 'klyfta', 'filé', 'bit', 'klick', 'låda'].includes(unitWord);
   const pChips = countable ? [1, 2, 3, 4] : P_CHIPS;
   const init = defaultAmount(pick);
   const [unit, setUnit] = useState<Amount['unit']>(init.unit === 'portion' && !canPortion ? 'g' : init.unit);
@@ -439,7 +445,9 @@ function AmountView({
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm text-mute">
           {pick.kind === 'recipe'
-            ? `${pick.recipe.portions} portioner · ${servingG} g/portion`
+            ? pick.recipe.batch
+              ? `Matlåda · ${num(pick.recipe.batch.left, 1)} av ${pick.recipe.batch.total} kvar · ${servingG} g/låda`
+              : `${pick.recipe.portions} portioner · ${servingG} g/portion`
             : [pick.food.brand, servingG ? `1 ${unitWord} ≈ ${servingG} g` : '', `${kcalStr(pick.food.per100.kcal)} kcal/100 g`].filter(Boolean).join(' · ')}
         </div>
         <button

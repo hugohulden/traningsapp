@@ -71,3 +71,37 @@ describe('styckvaror', () => {
     expect(row).toMatchObject({ n: { kcal: 136 }, servingG: 50, unitLabel: 'st' });
   });
 });
+
+describe('matlådor', () => {
+  it('räknas ner, kommer tillbaka vid ångra och kan lagas igen', async () => {
+    const { deleteLogs, updateLog, cookAgain } = await import('./store');
+    const r = await saveRecipe({
+      name: 'Chili',
+      ingredients: [{ name: 'Färs', grams: 1000, per100: { kcal: 200 } }, { name: 'Bönor', grams: 1000, per100: { kcal: 100 } }],
+      portions: 5,
+      batch: { total: 5, left: 5, madeAt: '2026-11-20' },
+    });
+    const left = async () => (await db.recipes.get(r.id))!.batch!.left;
+    // 1 låda idag = 600 kcal
+    const [a] = await logPick({ kind: 'recipe', recipe: r }, { unit: 'portion', value: 1 }, 'lunch', ['2026-11-20']);
+    expect(await dayKcal('2026-11-20')).toBe(600);
+    expect(await left()).toBe(4);
+    // Matlåda tis–tors på en gång
+    const ids = await logPick({ kind: 'recipe', recipe: (await db.recipes.get(r.id))! }, { unit: 'portion', value: 1 }, 'lunch', ['2026-11-24', '2026-11-25', '2026-11-26']);
+    expect(await left()).toBe(1);
+    // Ångra tisdag → lådan tillbaka
+    await deleteLogs([ids[0]]);
+    expect(await left()).toBe(2);
+    // Åt en halv låda i stället för en hel idag
+    await updateLog(a, { amount: { unit: 'portion', value: 0.5 } });
+    expect(await left()).toBe(2.5);
+    // Kopiera dagens lunch till fredag → en halv låda till
+    await copyLogs('2026-11-20', '2026-11-27', 'lunch');
+    expect(await left()).toBe(2);
+    // Aldrig under noll
+    await logPick({ kind: 'recipe', recipe: (await db.recipes.get(r.id))! }, { unit: 'portion', value: 5 }, 'middag', ['2026-11-28']);
+    expect(await left()).toBe(0);
+    await cookAgain(r.id, '2026-12-01');
+    expect((await db.recipes.get(r.id))!.batch).toEqual({ total: 5, left: 5, madeAt: '2026-12-01' });
+  });
+});

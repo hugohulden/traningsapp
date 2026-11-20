@@ -46,7 +46,7 @@ export function RecipesScreen() {
                   <div className="shrink-0 text-sm font-semibold">{kcalStr(per.kcal)} kcal</div>
                 </div>
                 <div className="text-xs text-mute">
-                  per portion ({recipeServingG(r)} g) · {macroStr(per)} · {r.portions} portioner · {r.ingredients.length} ingredienser
+                  per portion ({recipeServingG(r)} g) · {macroStr(per)} · {r.batch ? `matlåda: ${num(r.batch.left, 1)} av ${r.batch.total} kvar` : `${r.portions} portioner`} · {r.ingredients.length} ingredienser
                 </div>
               </button>
               <div className="grid grid-cols-2 gap-2 px-4 pb-3">
@@ -70,7 +70,7 @@ export function RecipesScreen() {
   );
 }
 
-export function RecipeEditor({ id }: { id?: string }) {
+export function RecipeEditor({ id, batch: batchProp }: { id?: string; batch?: boolean }) {
   const nav = useNav();
   const today = useToday();
   const existing = useLiveQuery(() => (id ? db.recipes.get(id) : undefined), [id]);
@@ -80,12 +80,15 @@ export function RecipeEditor({ id }: { id?: string }) {
   const [portions, setPortions] = useState('4');
   const [weight, setWeight] = useState('');
   const [picking, setPicking] = useState(false);
+  const [left, setLeft] = useState('');
+  const batch = batchProp || !!existing?.batch;
 
   if (id && existing && !loaded) {
     setName(existing.name);
     setIngs(existing.ingredients);
     setPortions(String(existing.portions));
     setWeight(existing.totalWeightG ? String(existing.totalWeightG) : '');
+    setLeft(existing.batch ? num(existing.batch.left, 2) : '');
     setLoaded(true);
   }
   if (id && !loaded) return <div className="p-8 text-mute">Laddar…</div>;
@@ -96,16 +99,25 @@ export function RecipeEditor({ id }: { id?: string }) {
   const valid = name.trim() && ings.length > 0 && (parseNum(portions) ?? 0) > 0;
 
   async function save() {
-    await saveRecipe({ id, name: name.trim(), ingredients: ings, portions: draft.portions, totalWeightG: draft.totalWeightG && draft.totalWeightG > 0 ? draft.totalWeightG : undefined, favorite: existing?.favorite, lastAmount: existing?.lastAmount, lastUsedAt: existing?.lastUsedAt });
+    const total = Math.round(draft.portions);
+    // Matlådesats: antal lådor = portioner. Ny sats börjar full; ändrat antal flyttar "kvar" lika mycket.
+    const batchVal = batch
+      ? {
+          total,
+          left: Math.max(0, Math.min(total, parseNum(left) ?? (existing?.batch ? existing.batch.left + (total - existing.batch.total) : total))),
+          madeAt: existing?.batch?.madeAt ?? today,
+        }
+      : existing?.batch;
+    await saveRecipe({ id, name: name.trim(), ingredients: ings, portions: batch ? total : draft.portions, totalWeightG: draft.totalWeightG && draft.totalWeightG > 0 ? draft.totalWeightG : undefined, favorite: existing?.favorite, lastAmount: existing?.lastAmount, lastUsedAt: existing?.lastUsedAt, batch: batchVal });
     nav.pop();
   }
 
   return (
     <div className="pb-10">
-      <Header title={id ? 'Ändra rätt' : 'Ny rätt'} onBack={() => nav.pop()} />
+      <Header title={batch ? (id ? 'Matlådesats' : 'Ny matlådesats') : id ? 'Ändra rätt' : 'Ny rätt'} onBack={() => nav.pop()} />
       <div className="space-y-4 p-4">
         <Field label="Namn">
-          <input className={inputCls} placeholder="t.ex. Kycklinggryta" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className={inputCls} placeholder={batch ? 't.ex. Kycklinggryta v. 48' : 't.ex. Kycklinggryta'} value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
 
         <Card>
@@ -146,34 +158,42 @@ export function RecipeEditor({ id }: { id?: string }) {
         </Card>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Antal portioner">
-            <input className={inputCls} inputMode="decimal" value={portions} onChange={(e) => setPortions(e.target.value)} />
+          <Field label={batch ? 'Antal matlådor' : 'Antal portioner'}>
+            <input className={inputCls} inputMode={batch ? 'numeric' : 'decimal'} value={portions} onChange={(e) => setPortions(e.target.value)} />
           </Field>
           <Field label="Färdig vikt g (valfritt)" hint="Väg grytan – då kan du logga i gram.">
             <input className={inputCls} inputMode="decimal" placeholder={String(num(total.grams, 0))} value={weight} onChange={(e) => setWeight(e.target.value)} />
           </Field>
         </div>
 
+        {batch && id && (
+          <Field label="Lådor kvar" hint="Ändras automatiskt när du äter en. Rätta här om du gett bort eller slängt en.">
+            <input className={inputCls} inputMode="decimal" value={left} onChange={(e) => setLeft(e.target.value)} />
+          </Field>
+        )}
+
         <div className="ring-grad rounded-3xl p-4 text-center">
-          <div className="text-[11px] uppercase tracking-wider text-mute">Per portion ({recipeServingG(draft)} g)</div>
+          <div className="text-[11px] uppercase tracking-wider text-mute">
+            Per {batch ? 'låda' : 'portion'} ({recipeServingG(draft)} g)
+          </div>
           <div className="text-grad text-4xl font-black tracking-tighter">{kcalStr(per.kcal)}</div>
           <div className="text-sm text-mute">kcal · {macroStr(per) || 'makron saknas'}</div>
         </div>
 
         <Button className="w-full" disabled={!valid} onClick={() => void save()}>
-          Spara rätt
+          {batch ? (id ? 'Spara' : `Spara ${Math.round(parseNum(portions) ?? 0)} matlådor`) : 'Spara rätt'}
         </Button>
         {id && (
           <Button
             kind="danger"
             className="w-full"
             onClick={async () => {
-              if (!(await ask(`Ta bort ${name}? Det du redan loggat ligger kvar.`, { ok: 'Ta bort', danger: true }))) return;
+              if (!(await ask(`Ta bort ${name || 'rätten'}? Det du redan loggat ligger kvar.`, { ok: 'Ta bort', danger: true }))) return;
               await deleteRecipe(id);
               nav.pop();
             }}
           >
-            Ta bort rätt
+            {batch ? 'Ta bort satsen' : 'Ta bort rätt'}
           </Button>
         )}
       </div>

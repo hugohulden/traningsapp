@@ -12,15 +12,30 @@ import { useToday } from '../ui/hooks';
 import { ask } from '../ui/confirm';
 import { toast } from '../ui/toast';
 import { dayTarget, macroTargets, MEALS, MEAL_NAMES, sumNutrients } from '../food/engine';
-import { copyLogs, deleteLogs, setBurned, updateLog } from '../food/store';
+import { copyLogs, deleteLogs, restoreLogs, setBurned, updateLog } from '../food/store';
 import { AddSheet } from '../food/ui/AddSheet';
+import { BatchesView } from '../food/ui/Batches';
 import { amountStr, kcalStr, MacroBar, MealPicker, Ring } from '../food/ui/parts';
+
+// Kommer ihåg vald flik och dag när du går in i en rätt och tillbaka.
+let lastView: 'dag' | 'lador' = 'dag';
+let lastDate: string | null = null;
 
 export function FoodScreen() {
   const s = useAppSettings();
   const nav = useNav();
   const today = useToday();
-  const [date, setDate] = useState(today);
+  const [date, setDateState] = useState(lastDate ?? today);
+  const setDate = (d: string) => {
+    lastDate = d === today ? null : d;
+    setDateState(d);
+  };
+  const [view, setViewState] = useState(lastView);
+  const setView = (v: 'dag' | 'lador') => {
+    lastView = v;
+    setViewState(v);
+  };
+  const activeBoxes = useLiveQuery(async () => (await db.recipes.toArray()).filter((r) => r.batch && r.batch.left > 0).length, []);
   const [add, setAdd] = useState<Meal | null>(null);
   const [edit, setEdit] = useState<FoodLogRec | null>(null);
   const [copy, setCopy] = useState<{ meal: Meal | null } | null>(null);
@@ -38,7 +53,7 @@ export function FoodScreen() {
     <div>
       <Header
         title="Mat"
-        sub={`${dayLabel ? `${dayLabel} · ` : ''}${formatLong(date)}`}
+        sub={view === 'lador' ? 'Matlådor' : `${dayLabel ? `${dayLabel} · ` : ''}${formatLong(date)}`}
         right={
           <button onClick={() => nav.push({ name: 'recipes' })} className="min-h-10 rounded-xl bg-panel2 px-3 text-sm font-semibold">
             Rätter
@@ -46,6 +61,17 @@ export function FoodScreen() {
         }
       />
       <div className="space-y-4 p-4">
+        <div className="grid grid-cols-2 gap-1 rounded-2xl bg-panel2 p-1">
+          {(['dag', 'lador'] as const).map((v) => (
+            <button key={v} onClick={() => setView(v)} className={`min-h-11 rounded-xl text-sm font-semibold ${view === v ? 'bg-ink text-bg' : 'text-mute'}`}>
+              {v === 'dag' ? 'Dag' : `Matlådor${activeBoxes ? ` (${activeBoxes})` : ''}`}
+            </button>
+          ))}
+        </div>
+        {view === 'lador' ? (
+          <BatchesView />
+        ) : (
+          <>
         {/* Dagbläddring */}
         <div className="flex items-center gap-2">
           <button onClick={() => setDate(addDays(date, -1))} className="h-11 w-11 rounded-2xl bg-panel2 text-2xl" aria-label="Föregående dag">
@@ -121,6 +147,8 @@ export function FoodScreen() {
         )}
 
         <Last7 date={date} s={s} />
+          </>
+        )}
       </div>
 
       <AddSheet open={!!add} onClose={() => setAdd(null)} date={date} meal={add ?? 'frukost'} />
@@ -217,7 +245,7 @@ function EditLogSheet({ rec, onClose }: { rec: FoodLogRec; onClose: () => void }
           className="w-full"
           onClick={async () => {
             await deleteLogs([rec.id]);
-            toast(`${rec.name} borttagen`, () => void db.foodLog.put(rec));
+            toast(`${rec.name} borttagen`, () => void restoreLogs([rec]));
             onClose();
           }}
         >
