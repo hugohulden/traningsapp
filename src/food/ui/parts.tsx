@@ -2,16 +2,16 @@
 import type { ReactNode } from 'react';
 import type { Amount, Meal, Nutrients } from '../../db/db';
 import { num } from '../../lib/format';
-import { MEALS, MEAL_NAMES } from '../engine';
+import { MEALS, MEAL_NAMES, unitText } from '../engine';
 
 export function kcalStr(n: number): string {
   return Math.round(n).toLocaleString('sv-SE');
 }
 
-export function amountStr(a?: Amount, servingG?: number): string {
+export function amountStr(a?: Amount, servingG?: number, unit?: string): string {
   if (!a) return '';
   if (a.unit === 'g') return `${num(a.value, 0)} g`;
-  const p = a.value === 1 ? '1 portion' : `${num(a.value, 2)} portioner`;
+  const p = unitText(a.value, unit);
   return servingG ? `${p} (${num(a.value * servingG, 0)} g)` : p;
 }
 

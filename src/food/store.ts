@@ -1,7 +1,7 @@
 /** Kaloriräknarens dataåtgärder (IndexedDB via Dexie) och nätanrop. */
 import { db, uid, type Amount, type FoodLogRec, type FoodRec, type Meal, type Nutrients, type RecipeRec } from '../db/db';
 import { addDays } from '../lib/dates';
-import { amountToGrams, forGrams, lvToFood, offToFood, recipeFor, recipeServingG, type LvRow, type OffProduct } from './engine';
+import { amountToGrams, forGrams, lvToFood, offToFood, recipeFor, recipeServingG, withUnit, type LvRow, type OffProduct } from './engine';
 
 /** Ett livsmedel som ännu inte behöver finnas i databasen (t.ex. från Livsmedelsverket eller en sökning). */
 export type FoodLike = Omit<FoodRec, 'updatedAt'>;
@@ -10,6 +10,11 @@ export type Pick = { kind: 'food'; food: FoodLike } | { kind: 'recipe'; recipe: 
 
 export function pickName(p: Pick): string {
   return p.kind === 'food' ? p.food.name : p.recipe.name;
+}
+
+/** Vad en portion heter för varan ("st", "skiva" … eller "portion"). */
+export function pickUnit(p: Pick): string {
+  return p.kind === 'food' ? (p.food.unitLabel ?? 'portion') : 'portion';
 }
 
 export function pickServingG(p: Pick): number | undefined {
@@ -49,6 +54,7 @@ export async function logPick(p: Pick, amount: Amount, meal: Meal, dates: string
         n,
         amount,
         servingG: pickServingG(p),
+        unitLabel: pickUnit(p) === 'portion' ? undefined : pickUnit(p),
         ref: p.kind === 'food' ? { kind: 'food', id: p.food.id } : { kind: 'recipe', id: p.recipe.id },
         createdAt: now,
       };
@@ -57,7 +63,7 @@ export async function logPick(p: Pick, amount: Amount, meal: Meal, dates: string
     }
     if (p.kind === 'food') {
       const cur = await db.foods.get(p.food.id);
-      await db.foods.put({ ...p.food, ...(cur ?? {}), lastAmount: amount, lastUsedAt: now, updatedAt: now });
+      await db.foods.put(withUnit({ ...p.food, ...(cur ?? {}), lastAmount: amount, lastUsedAt: now, updatedAt: now }));
     } else {
       await db.recipes.update(p.recipe.id, { lastAmount: amount, lastUsedAt: now });
     }
@@ -140,7 +146,7 @@ export async function recentAndFavorites(): Promise<{ recent: Pick[]; favorites:
   const foods = await db.foods.toArray();
   const recipes = await db.recipes.toArray();
   const all: (Pick & { t: number; fav: boolean })[] = [
-    ...foods.map((f) => ({ kind: 'food' as const, food: f, t: f.lastUsedAt ?? 0, fav: !!f.favorite })),
+    ...foods.map((f) => ({ kind: 'food' as const, food: withUnit(f), t: f.lastUsedAt ?? 0, fav: !!f.favorite })),
     ...recipes.map((r) => ({ kind: 'recipe' as const, recipe: r, t: r.lastUsedAt ?? 0, fav: !!r.favorite })),
   ];
   return {

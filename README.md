@@ -23,7 +23,6 @@ npm run build    # produktionsbygge i dist/
 | `src/engine/bodyweight.ts` | Målkurva, glidande medel, kcal-förslag |
 | `src/db/` | Dexie-databas, backup (export/import), dataåtgärder |
 | `src/food/` | Kaloriräknaren: mål, makron, rätter, sök (`engine.ts`), data och Open Food Facts (`store.ts`), vyer (`ui/`), Livsmedelsverkets data (`data/livsmedel.json`) |
-| `proxy/mat-foto/` | Cloudflare Worker för AI-foto (källkod), byggd fil `proxy/mat-foto.js` |
 | `src/screens/` | Idag, Mat, Gympass, Plan/Vecka, Statistik, Kropp, Mer |
 
 ## Publicera gratis (GitHub Pages)
@@ -69,22 +68,8 @@ Fliken **Mat** visar dagens kalorier mot målet, makron och måltiderna. Logga m
 - **Mål** = underhåll (3100) + överskott (+400). Ändras under **Mer → Mat**. Fyller du i dagens förbrukning från Garmin i Mat gäller den i stället för underhållet den dagen.
 - **Sök** letar bland dina rätter och senast ätna, i Livsmedelsverkets livsmedelsdatabas (ingår i appen, fungerar offline) och i Open Food Facts (märkesvaror, kräver nät).
 - **Skanna** läser streckkoder med kameran och slår upp dem i Open Food Facts. Finns varan inte lägger du in den själv – den hittas direkt nästa gång.
+- **Styckvaror** som ägg, banan, äpple, brödskivor och potatis kan loggas i antal ("2 st ägg ≈ 100 g"). Vikterna är ungefärliga och står i `FOOD.units` i `src/plan/config.ts`.
 - **Snabbval**: ett tryck loggar samma mängd som förra gången. **Kcal**: bara ett kcal-tal.
 - **Rätter** (knappen uppe till höger): lägg ihop ingredienser, ange portioner (och gärna färdig vikt), logga sedan en portion – även flera dagar på en gång för matlådor.
 
 Livsmedelsdata: © Livsmedelsverket, livsmedelsdatabasen (CC BY 4.0). Uppdatera med `python3 scripts/build_livsmedel.py`. Märkesvaror: Open Food Facts (ODbL).
-
-## AI-foto (Cloudflare Worker, gratis)
-
-Fotot analyseras av Claude. För att API-nyckeln aldrig ska ligga i appen går anropet via en liten Cloudflare Worker som du äger. Allt görs i webbläsaren, ca 10 minuter.
-
-1. **API-nyckel:** skapa ett konto på **console.anthropic.com**, lägg in betalkort/krediter under *Billing* och skapa en nyckel under *API keys*. Ett foto kostar ungefär 10–25 öre (Claude Opus 5.5).
-2. **Cloudflare:** skapa ett gratis konto på **dash.cloudflare.com** → *Workers & Pages* → *Create* → *Create Worker*. Döp den till t.ex. `mat-foto` → *Deploy*.
-3. **Koden:** *Edit code* → markera allt i `worker.js` och ersätt med **hela** innehållet i [`proxy/mat-foto.js`](proxy/mat-foto.js) (öppna filen på GitHub → *Raw* → kopiera allt) → *Deploy*.
-4. **Hemligheter:** Workern → *Settings* → *Variables and Secrets* → *Add*:
-   - `ANTHROPIC_API_KEY` – typ **Secret** – nyckeln från steg 1.
-   - `APP_CODE` – typ **Secret** – hitta på en lång kod (t.ex. 20 slumpade tecken).
-   - (valfritt) `ALLOWED_ORIGIN` – om appen inte ligger på `https://hugohulden.github.io`.
-5. **I appen:** **Mer → Mat → AI-foto**: klistra in Workerns adress (`https://mat-foto.<ditt-namn>.workers.dev`) och samma appkod.
-
-Workern svarar bara på anrop från appens adress som har rätt appkod, så ingen annan kan använda din nyckel. Vill du sätta en kostnadsgräns: console.anthropic.com → *Limits*. Källkoden finns i `proxy/mat-foto/src/worker.js` (bygg om med `cd proxy/mat-foto && npm install && npm run build`).

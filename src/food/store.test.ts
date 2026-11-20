@@ -60,3 +60,14 @@ describe('loggning', () => {
     expect(await dayKcal('2026-11-20')).toBe(1200);
   });
 });
+
+describe('styckvaror', () => {
+  it('2 st ägg = 100 g', async () => {
+    const { lvToFood } = await import('./engine');
+    const egg = lvToFood([1225, 'Ägg rått', 136, 12.1, 0, 9.8]);
+    expect(defaultAmount({ kind: 'food', food: egg })).toEqual({ unit: 'portion', value: 1 });
+    await logPick({ kind: 'food', food: egg }, { unit: 'portion', value: 2 }, 'frukost', ['2026-11-30']);
+    const [row] = await db.foodLog.where('date').equals('2026-11-30').toArray();
+    expect(row).toMatchObject({ n: { kcal: 136 }, servingG: 50, unitLabel: 'st' });
+  });
+});

@@ -48,9 +48,6 @@ export interface AppSettings {
   surplusKcal: number;
   /** Makrofördelning i procent av kalorimålet. */
   macroPct: { p: number; c: number; f: number };
-  /** AI-foto: adress till din Cloudflare Worker och appkoden du valt. */
-  aiProxyUrl: string;
-  aiAppCode: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -84,6 +81,4 @@ export const DEFAULT_SETTINGS: AppSettings = {
   maintenanceKcal: FOOD.maintenanceKcal,
   surplusKcal: FOOD.surplusKcal,
   macroPct: { ...FOOD.macroPct },
-  aiProxyUrl: '',
-  aiAppCode: '',
 };

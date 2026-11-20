@@ -17,7 +17,7 @@ describe('export/import', () => {
     await a.protein.put({ date: '2026-11-16', done: true });
     await a.thresholds.put({ date: '2026-11-16', thresholdSec: 275, source: 'start' });
     await a.customExercises.put({ id: 'egen-1', name: 'Egen', muscleGroup: 'Rygg', kind: 'maskin', step: { type: 'maskin' }, compound: false, alternatives: [], custom: true });
-    await a.kv.put({ key: 'settings', value: { thresholdSec: 270, aiAppCode: 'hemlig' } });
+    await a.kv.put({ key: 'settings', value: { thresholdSec: 270 } });
     await a.foodLog.put({ id: 'm1', date: '2026-11-20', meal: 'lunch', name: 'Kycklinggryta', n: { kcal: 761, p: 56 }, amount: { unit: 'portion', value: 1 }, servingG: 350, ref: { kind: 'recipe', id: 'rec1' }, createdAt: 1 });
     await a.recipes.put({ id: 'rec1', name: 'Kycklinggryta', ingredients: [{ name: 'Kyckling', grams: 800, per100: { kcal: 116 } }], portions: 4, updatedAt: 1 });
     await a.foods.put({ id: 'off:123', source: 'egen', name: 'Bar', barcode: '123', per100: { kcal: 360 }, saved: true, updatedAt: 1 });
@@ -34,8 +34,7 @@ describe('export/import', () => {
     expect(await b.recipes.get('rec1')).toMatchObject({ portions: 4 });
     expect(await b.foods.where('barcode').equals('123').count()).toBe(1);
     expect(await b.foodDays.get('2026-11-20')).toMatchObject({ burnedKcal: 3400 });
-    // Appkoden för AI-foto följer inte med i backupfilen.
-    expect((file.data.kv as { value: { aiAppCode: string } }[])[0].value.aiAppCode).toBe('');
+
   });
 
   it('avvisar fel fil', async () => {

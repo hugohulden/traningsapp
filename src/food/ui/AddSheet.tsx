@@ -9,7 +9,7 @@ import { DAY_SHORT, formatShort, weekday } from '../../lib/dates';
 import { num, parseNum } from '../../lib/format';
 import { Button, Field, Sheet, inputCls } from '../../ui/ui';
 import { toast } from '../../ui/toast';
-import { MEAL_NAMES, rank, recipePerPortion } from '../engine';
+import { MEAL_NAMES, rank, recipePerPortion, unitText, withUnit } from '../engine';
 import {
   createCustomFood,
   defaultAmount,
@@ -23,6 +23,7 @@ import {
   pickName,
   pickNutrients,
   pickServingG,
+  pickUnit,
   recentAndFavorites,
   searchOff,
   toggleFavorite,
@@ -32,16 +33,14 @@ import {
 import { amountStr, ItemRow, kcalStr, macroStr, MealPicker } from './parts';
 
 const ScanPane = lazy(() => import('./ScanPane'));
-const PhotoPane = lazy(() => import('./PhotoPane'));
 
-type TabId = 'sok' | 'skanna' | 'foto' | 'snabb' | 'kcal';
+type TabId = 'sok' | 'skanna' | 'snabb' | 'kcal';
 
-const TAB_LABEL: Record<TabId, string> = { sok: 'Sök', skanna: 'Skanna', foto: 'Foto', snabb: 'Snabbval', kcal: 'Kcal' };
+const TAB_LABEL: Record<TabId, string> = { sok: 'Sök', skanna: 'Skanna', snabb: 'Snabbval', kcal: 'Kcal' };
 
 const ICON: Record<TabId, ReactNode> = {
   sok: <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.5-4.5" />,
   skanna: <path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8" />,
-  foto: <path d="M4 8h3l2-3h6l2 3h3v11H4zM12 17a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />,
   snabb: <path d="M13 3 5 13h6l-1 8 8-10h-6z" />,
   kcal: <path d="M12 3c3 4 6 6.5 6 10.5A6 6 0 0 1 6 13.5C6 10 9 8 9 5c1.5 1 2.5 2 3 3.5" />,
 };
@@ -85,7 +84,7 @@ export function AddSheet({
     }
   }, [open, initialMeal, mode, startTab, initialPick]);
 
-  const tabs: TabId[] = mode === 'pick' ? ['sok', 'skanna', 'snabb'] : ['sok', 'skanna', 'foto', 'snabb', 'kcal'];
+  const tabs: TabId[] = mode === 'pick' ? ['sok', 'skanna', 'snabb'] : ['sok', 'skanna', 'snabb', 'kcal'];
   const title = selected ? pickName(selected) : newFood ? 'Ny produkt' : mode === 'pick' ? 'Lägg till ingrediens' : `Lägg till · ${MEAL_NAMES[meal]}`;
   // Tillbaka från en skannad vara går till Sök (annars läser kameran samma kod direkt igen).
   const back =
@@ -120,7 +119,7 @@ export function AddSheet({
       ) : (
         <div className="space-y-3">
           {mode === 'log' && <MealPicker value={meal} onChange={setMeal} />}
-          <div className={`grid gap-1.5 ${tabs.length === 5 ? 'grid-cols-5' : 'grid-cols-3'}`}>
+          <div className={`grid gap-1.5 ${tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
             {tabs.map((t) => (
               <button
                 key={t}
@@ -142,11 +141,6 @@ export function AddSheet({
               <ScanPane onFound={(f) => setSelected({ kind: 'food', food: f })} onNotFound={(barcode) => setNewFood({ barcode })} />
             </Suspense>
           )}
-          {tab === 'foto' && (
-            <Suspense fallback={<Loading text="Laddar…" />}>
-              <PhotoPane meal={meal} date={date} onDone={onClose} />
-            </Suspense>
-          )}
         </div>
       )}
     </Sheet>
@@ -158,7 +152,8 @@ function Loading({ text }: { text: string }) {
 }
 
 function per100Sub(f: FoodLike): string {
-  return [`${kcalStr(f.per100.kcal)} kcal/100 g`, f.brand, macroStr(f.per100)].filter(Boolean).join(' · ');
+  const unit = f.servingG && f.unitLabel ? `1 ${f.unitLabel} ≈ ${f.servingG} g = ${kcalStr((f.per100.kcal * f.servingG) / 100)} kcal` : '';
+  return [unit, `${kcalStr(f.per100.kcal)} kcal/100 g`, f.brand, unit ? '' : macroStr(f.per100)].filter(Boolean).join(' · ');
 }
 
 function pickSub(p: Pick): string {
@@ -216,7 +211,7 @@ function SearchPane({ onSelect, onNewFood }: { onSelect: (p: Pick) => void; onNe
       ...personal.recipes.map((r) => ({ kind: 'recipe' as const, recipe: r, name: r.name, tag: 'Rätt', t: r.lastUsedAt ?? 1 })),
       ...personal.foods
         .filter((f) => f.saved || f.lastUsedAt || f.favorite)
-        .map((f) => ({ kind: 'food' as const, food: f, name: f.name, tag: f.saved ? 'Egen' : f.favorite ? '★' : 'Senast', t: f.lastUsedAt ?? 0 })),
+        .map((f) => ({ kind: 'food' as const, food: withUnit(f), name: f.name, tag: f.saved ? 'Egen' : f.favorite ? '★' : 'Senast', t: f.lastUsedAt ?? 0 })),
     ];
     const top = rank(mine, term, 8);
     const seen = new Set(top.map((x) => (x.kind === 'food' ? x.food.id : x.recipe.id)));
@@ -310,7 +305,7 @@ function QuickPane({ mode, meal, date, onSelect }: { mode: 'log' | 'pick'; meal:
         key={k}
         tag={p.kind === 'recipe' ? 'Rätt' : undefined}
         title={pickName(p)}
-        sub={`${amountStr(a, pickServingG(p))}${n ? ` · ${kcalStr(n.kcal)} kcal` : ''}`}
+        sub={`${amountStr(a, pickServingG(p), pickUnit(p))}${n ? ` · ${kcalStr(n.kcal)} kcal` : ''}`}
         right={done.has(k) ? <span className="font-bold text-accent">✓</span> : <span className="text-2xl leading-none text-accent">+</span>}
         onClick={() => void quickLog(p)}
         onSide={() => onSelect(p)}
@@ -411,6 +406,10 @@ function AmountView({
 }) {
   const servingG = pickServingG(pick);
   const canPortion = pick.kind === 'recipe' || !!servingG;
+  // Styckvaror (ägg, banan, brödskiva …) räknas i hela; övriga portioner i halvor.
+  const unitWord = pickUnit(pick);
+  const countable = ['st', 'skiva', 'klyfta', 'filé', 'bit', 'klick'].includes(unitWord);
+  const pChips = countable ? [1, 2, 3, 4] : P_CHIPS;
   const init = defaultAmount(pick);
   const [unit, setUnit] = useState<Amount['unit']>(init.unit === 'portion' && !canPortion ? 'g' : init.unit);
   const [val, setVal] = useState(num(init.unit === 'portion' && !canPortion ? 100 : init.value, 2));
@@ -439,7 +438,9 @@ function AmountView({
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm text-mute">
-          {pick.kind === 'recipe' ? `${pick.recipe.portions} portioner · ${servingG} g/portion` : [pick.food.brand, `${kcalStr(pick.food.per100.kcal)} kcal/100 g`].filter(Boolean).join(' · ')}
+          {pick.kind === 'recipe'
+            ? `${pick.recipe.portions} portioner · ${servingG} g/portion`
+            : [pick.food.brand, servingG ? `1 ${unitWord} ≈ ${servingG} g` : '', `${kcalStr(pick.food.per100.kcal)} kcal/100 g`].filter(Boolean).join(' · ')}
         </div>
         <button
           onClick={async () => setFav(await toggleFavorite(pick))}
@@ -462,7 +463,7 @@ function AmountView({
           <div className="flex w-32 flex-col gap-1 rounded-2xl bg-panel2 p-1">
             {(['portion', 'g'] as const).map((u) => (
               <button key={u} onClick={() => switchUnit(u)} className={`flex-1 rounded-xl text-sm font-semibold ${unit === u ? 'bg-ink text-bg' : 'text-mute'}`}>
-                {u === 'g' ? 'gram' : 'portioner'}
+                {u === 'g' ? 'gram' : unitText(2, unitWord).replace(/^2 /, '')}
               </button>
             ))}
           </div>
@@ -470,9 +471,9 @@ function AmountView({
         {!canPortion && <div className="flex items-center px-2 text-lg text-mute">gram</div>}
       </div>
       <div className="flex flex-wrap gap-2">
-        {(unit === 'g' ? G_CHIPS : P_CHIPS).map((x) => (
+        {(unit === 'g' ? G_CHIPS : pChips).map((x) => (
           <button key={x} onClick={() => setVal(num(x, 2))} className="min-h-10 flex-1 rounded-xl bg-panel2 px-3 text-sm font-semibold">
-            {unit === 'g' ? `${x} g` : num(x, 1)}
+            {unit === 'g' ? `${x} g` : countable ? unitText(x, unitWord) : num(x, 1)}
           </button>
         ))}
       </div>

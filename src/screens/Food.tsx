@@ -103,7 +103,7 @@ export function FoodScreen() {
                     <button key={r.id} onClick={() => setEdit(r)} className="flex min-h-12 w-full items-center gap-3 border-b border-line py-2 text-left last:border-0">
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium">{r.name}</div>
-                        <div className="truncate text-xs text-mute">{r.amount ? amountStr(r.amount, r.servingG) : r.ref.kind === 'quick' ? (r.name === 'Snabbkalorier' ? '' : 'snabbkalorier') : r.ref.kind === 'ai' ? 'uppskattat från foto' : ''}</div>
+                        <div className="truncate text-xs text-mute">{r.amount ? amountStr(r.amount, r.servingG, r.unitLabel) : r.ref.kind === 'quick' ? (r.name === 'Snabbkalorier' ? '' : 'snabbkalorier') : ''}</div>
                       </div>
                       <div className="shrink-0 text-sm font-semibold">{kcalStr(r.n.kcal)}</div>
                     </button>
@@ -192,7 +192,7 @@ function EditLogSheet({ rec, onClose }: { rec: FoodLogRec; onClose: () => void }
             <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
         )}
-        <Field label={isQuick ? 'Kalorier' : rec.amount!.unit === 'g' ? 'Gram' : 'Portioner'}>
+        <Field label={isQuick ? 'Kalorier' : rec.amount!.unit === 'g' ? 'Gram' : rec.unitLabel ? `Antal (${rec.unitLabel})` : 'Portioner'}>
           <input className={`${inputCls} text-3xl font-black`} inputMode="decimal" value={val} onChange={(e) => setVal(e.target.value)} onFocus={(e) => e.target.select()} />
         </Field>
         <div className="rounded-2xl bg-panel2 p-3 text-center text-2xl font-black">

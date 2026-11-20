@@ -124,6 +124,8 @@ export interface FoodRec {
   /** Gram per portion, om känd. */
   servingG?: number;
   servingLabel?: string;
+  /** Vad en portion heter: "st", "skiva", "glas" … (standard "portion"). */
+  unitLabel?: string;
   favorite?: boolean;
   lastAmount?: Amount;
   lastUsedAt?: number;
@@ -163,7 +165,9 @@ export interface FoodLogRec {
   amount?: Amount;
   /** Gram per portion när amount är portioner. */
   servingG?: number;
-  ref: { kind: 'food' | 'recipe' | 'quick' | 'ai'; id?: string };
+  /** Vad en portion heter ("st", "skiva" …). */
+  unitLabel?: string;
+  ref: { kind: 'food' | 'recipe' | 'quick'; id?: string };
   createdAt: number;
 }
 

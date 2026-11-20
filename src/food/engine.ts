@@ -3,6 +3,7 @@
  * Testad i engine.test.ts.
  */
 import type { Amount, Meal, Nutrients, RecipeRec } from '../db/db';
+import { FOOD } from '../plan/config';
 
 export const MEALS: Meal[] = ['frukost', 'lunch', 'middag', 'mellanmal'];
 export const MEAL_NAMES: Record<Meal, string> = { frukost: 'Frukost', lunch: 'Lunch', middag: 'Middag', mellanmal: 'Mellanmål' };
@@ -132,8 +133,8 @@ export function rank<T extends Searchable>(items: T[], query: string, limit = 30
 /** Livsmedelsverkets komprimerade rad: [nummer, namn, kcal, protein, kolhydrater, fett] per 100 g. */
 export type LvRow = [number, string, number, number, number, number];
 
-export function lvToFood(r: LvRow) {
-  return { id: `lv:${r[0]}`, source: 'lv' as const, name: r[1], per100: { kcal: r[2], p: r[3], c: r[4], f: r[5] } };
+export function lvToFood(r: LvRow): { id: string; source: 'lv'; name: string; per100: Nutrients; servingG?: number; unitLabel?: string } {
+  return withUnit({ id: `lv:${r[0]}`, source: 'lv' as const, name: r[1], per100: { kcal: r[2], p: r[3], c: r[4], f: r[5] } });
 }
 
 // ---------------------------------------------------------------------------
@@ -178,4 +179,36 @@ export function offToFood(p: OffProduct, barcode?: string) {
     servingG: sq && sq > 0 ? Math.round(sq) : undefined,
     servingLabel: p.serving_size || undefined,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Styckvikter (t.ex. 1 st ägg ≈ 50 g)
+// ---------------------------------------------------------------------------
+
+
+const PLURAL: Record<string, string> = { st: 'st', skiva: 'skivor', glas: 'glas', dl: 'dl', klyfta: 'klyftor', filé: 'filéer', bit: 'bitar', klick: 'klickar', portion: 'portioner' };
+
+/** "1 st", "2 skivor", "1,5 portioner" */
+export function unitText(n: number, unit = 'portion'): string {
+  const v = String(Math.round(n * 100) / 100).replace('.', ',');
+  return `${v} ${n === 1 ? unit : PLURAL[unit] ?? unit}`;
+}
+
+/** Ungefärlig styckvikt för ett livsmedel från Livsmedelsverket, om det finns en regel. */
+export function unitFor(name: string): { unit: string; g: number } | null {
+  const words = normalize(name).split(' ');
+  for (const r of FOOD.units) {
+    if (words[0] !== r.first) continue;
+    if (r.has && !words.includes(r.has)) continue;
+    if (r.not?.some((x) => words.some((w) => w.startsWith(x)))) continue;
+    return { unit: r.unit, g: r.g };
+  }
+  return null;
+}
+
+/** Lägger till styckvikt på Livsmedelsverkets livsmedel som saknar portion. */
+export function withUnit<T extends { source: string; name: string; servingG?: number; unitLabel?: string }>(f: T): T {
+  if (f.source !== 'lv' || f.servingG) return f;
+  const u = unitFor(f.name);
+  return u ? { ...f, servingG: u.g, unitLabel: u.unit } : f;
 }
