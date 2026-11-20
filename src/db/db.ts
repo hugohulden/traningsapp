@@ -90,6 +90,89 @@ export interface SwimRec {
   createdAt: number;
 }
 
+// ---------------------------------------------------------------------------
+// Mat
+// ---------------------------------------------------------------------------
+
+export type Meal = 'frukost' | 'lunch' | 'middag' | 'mellanmal';
+
+/** Näringsvärden. För livsmedel: per 100 g. För en loggrad: totalt. */
+export interface Nutrients {
+  kcal: number;
+  p?: number;
+  c?: number;
+  f?: number;
+}
+
+/** Hur mycket som åts: gram, eller portioner (då med portionens vikt om den är känd). */
+export interface Amount {
+  unit: 'g' | 'portion';
+  value: number;
+}
+
+/**
+ * Ett livsmedel som använts eller sparats: egen produkt, cachad Open Food Facts-produkt
+ * eller ett livsmedel från Livsmedelsverket som du har ätit (för "Senast ätna" och favoriter).
+ */
+export interface FoodRec {
+  id: string; // "lv:123", "off:<streckkod>", "egen:<uid>"
+  source: 'lv' | 'off' | 'egen';
+  name: string;
+  brand?: string;
+  barcode?: string;
+  per100: Nutrients;
+  /** Gram per portion, om känd. */
+  servingG?: number;
+  servingLabel?: string;
+  favorite?: boolean;
+  lastAmount?: Amount;
+  lastUsedAt?: number;
+  /** Sparad som egen produkt (inte bara cache). */
+  saved?: boolean;
+  updatedAt: number;
+}
+
+export interface RecipeIngredient {
+  foodId?: string;
+  name: string;
+  grams: number;
+  per100: Nutrients;
+}
+
+export interface RecipeRec {
+  id: string;
+  name: string;
+  ingredients: RecipeIngredient[];
+  /** Antal portioner rätten räcker till. */
+  portions: number;
+  /** Färdig vikt i gram (valfritt) – gör att du kan logga i gram. */
+  totalWeightG?: number;
+  favorite?: boolean;
+  lastAmount?: Amount;
+  lastUsedAt?: number;
+  updatedAt: number;
+}
+
+export interface FoodLogRec {
+  id: string;
+  date: string;
+  meal: Meal;
+  name: string;
+  /** Totalt för det som loggades. */
+  n: Nutrients;
+  amount?: Amount;
+  /** Gram per portion när amount är portioner. */
+  servingG?: number;
+  ref: { kind: 'food' | 'recipe' | 'quick' | 'ai'; id?: string };
+  createdAt: number;
+}
+
+/** Dagens förbrukning från Garmin (valfri). */
+export interface FoodDayRec {
+  date: string;
+  burnedKcal: number;
+}
+
 export interface WeighIn {
   date: string;
   kg: number;
@@ -117,6 +200,10 @@ export class AppDB extends Dexie {
   gymSessions!: Table<GymSessionRec, string>;
   runs!: Table<RunRec, string>;
   swims!: Table<SwimRec, string>;
+  foodLog!: Table<FoodLogRec, string>;
+  foods!: Table<FoodRec, string>;
+  recipes!: Table<RecipeRec, string>;
+  foodDays!: Table<FoodDayRec, string>;
   weighIns!: Table<WeighIn, string>;
   protein!: Table<ProteinDay, string>;
   customExercises!: Table<ExerciseDef, string>;
@@ -136,12 +223,19 @@ export class AppDB extends Dexie {
     });
     // v2: simpass
     this.version(2).stores({ swims: 'id, date, weekIndex, externalId' });
+    // v3: kaloriräknare
+    this.version(3).stores({
+      foodLog: 'id, date, createdAt',
+      foods: 'id, barcode, lastUsedAt',
+      recipes: 'id, lastUsedAt',
+      foodDays: 'date',
+    });
   }
 }
 
 export const db = new AppDB();
 
-export const TABLES = ['gymSessions', 'runs', 'swims', 'weighIns', 'protein', 'customExercises', 'thresholds', 'kv'] as const;
+export const TABLES = ['gymSessions', 'runs', 'swims', 'foodLog', 'foods', 'recipes', 'foodDays', 'weighIns', 'protein', 'customExercises', 'thresholds', 'kv'] as const;
 
 export function uid(): string {
   return (crypto as Crypto & { randomUUID?: () => string }).randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;

@@ -385,6 +385,18 @@ export const BODY = {
   weeksBelowForSuggestion: 2,
   kcalSuggestion: 'Lägg till ca 200–250 kcal per dag.',
   proteinText: '120–160 g protein per dag (1,6–2,2 g/kg)',
+  /** Dagar med minst så mycket loggat protein räknas som "proteinmål nått". */
+  proteinMinG: 120,
+  /** Förslag när vikten ligger under kurvan: höj överskottet med så här mycket. */
+  kcalRaise: 200,
+};
+
+/** Kaloriräknaren (förval – ändras under Mer). */
+export const FOOD = {
+  /** Snitt total förbrukning senaste 28 dagarna enligt Garmin. */
+  maintenanceKcal: 3100,
+  surplusKcal: 400,
+  macroPct: { p: 25, c: 50, f: 25 },
 };
 
 export const BACKUP_REMINDER_DAYS = 14;

@@ -1,4 +1,4 @@
-import { DEFAULT_STEPS, PROGRESSION, RUN_DEFAULTS } from './config';
+import { DEFAULT_STEPS, FOOD, PROGRESSION, RUN_DEFAULTS } from './config';
 
 export interface MissedWeek {
   /** Kalenderveckans index (0 = vecka 1) som missades. */
@@ -43,6 +43,14 @@ export interface AppSettings {
   lastSyncAt: string | null;
   lastSyncMessage: string | null;
   lastSyncError: boolean;
+  /** Mat: underhållskalorier (snitt total förbrukning) och överskott. */
+  maintenanceKcal: number;
+  surplusKcal: number;
+  /** Makrofördelning i procent av kalorimålet. */
+  macroPct: { p: number; c: number; f: number };
+  /** AI-foto: adress till din Cloudflare Worker och appkoden du valt. */
+  aiProxyUrl: string;
+  aiAppCode: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -73,4 +81,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lastSyncAt: null,
   lastSyncMessage: null,
   lastSyncError: false,
+  maintenanceKcal: FOOD.maintenanceKcal,
+  surplusKcal: FOOD.surplusKcal,
+  macroPct: { ...FOOD.macroPct },
+  aiProxyUrl: '',
+  aiAppCode: '',
 };

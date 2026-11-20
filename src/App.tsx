@@ -9,11 +9,14 @@ import { SettingsScreen } from './screens/Settings';
 import type { AppSettings } from './plan/settings';
 import { syncIntervals } from './sync/sync';
 import { ConfirmHost } from './ui/confirm';
+import { ToastHost } from './ui/toast';
+import { FoodScreen } from './screens/Food';
+import { RecipeEditor, RecipesScreen } from './food/ui/Recipes';
 import { useTheme } from './ui/theme';
 import { Icons } from './ui/icons';
 
-export type Tab = 'idag' | 'plan' | 'stat' | 'kropp' | 'mer';
-export type Screen = { name: 'gym'; id: string } | { name: 'week'; index: number };
+export type Tab = 'idag' | 'mat' | 'plan' | 'stat' | 'kropp' | 'mer';
+export type Screen = { name: 'gym'; id: string } | { name: 'week'; index: number } | { name: 'recipes' } | { name: 'recipe'; id?: string };
 
 interface Nav {
   push: (s: Screen) => void;
@@ -29,6 +32,7 @@ export const useAppSettings = () => useContext(SettingsCtx);
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'idag', label: 'Idag', icon: '◉' },
+  { id: 'mat', label: 'Mat', icon: '◍' },
   { id: 'plan', label: 'Plan', icon: '▦' },
   { id: 'stat', label: 'Statistik', icon: '▲' },
   { id: 'kropp', label: 'Kropp', icon: '⚖' },
@@ -78,12 +82,17 @@ export default function App() {
         {top ? (
           top.name === 'gym' ? (
             <GymSessionScreen id={top.id} />
-          ) : (
+          ) : top.name === 'week' ? (
             <WeekScreen index={top.index} />
+          ) : top.name === 'recipes' ? (
+            <RecipesScreen />
+          ) : (
+            <RecipeEditor key={top.id ?? 'ny'} id={top.id} />
           )
         ) : (
           <div className="pb-28" key={theme}>
             {tab === 'idag' && <TodayScreen />}
+            {tab === 'mat' && <FoodScreen />}
             {tab === 'plan' && <PlanScreen />}
             {tab === 'stat' && <StatsScreen />}
             {tab === 'kropp' && <BodyScreen />}
@@ -105,6 +114,7 @@ export default function App() {
           </div>
         )}
         <ConfirmHost />
+        <ToastHost />
       </NavCtx.Provider>
     </SettingsCtx.Provider>
   );

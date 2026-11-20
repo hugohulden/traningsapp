@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { CartesianGrid, ComposedChart, Line, Scatter, Tooltip, XAxis, YAxis } from 'recharts';
 import { db } from '../db/db';
+import { useAppSettings } from '../App';
+import { saveSettings } from '../db/store';
 import { BODY } from '../plan/config';
 import { kcalSuggestion, movingAverage, targetKg, weeklyAverages } from '../engine/bodyweight';
 import { addDays, diffDays, formatShort } from '../lib/dates';
@@ -15,9 +17,17 @@ export function BodyScreen() {
   const day = useToday();
   const weighs = useLiveQuery(() => db.weighIns.orderBy('date').toArray(), []);
   const protein = useLiveQuery(() => db.protein.toArray(), []);
+  const s = useAppSettings();
+  // Loggat protein per dag (från Mat) – dagar över gränsen räknas som "proteinmål nått".
+  const foodProtein = useLiveQuery(async () => {
+    const m = new Map<string, number>();
+    for (const l of await db.foodLog.where('date').aboveOrEqual(addDays(day, -7)).toArray()) m.set(l.date, (m.get(l.date) ?? 0) + (l.n.p ?? 0));
+    return m;
+  }, [day]);
   const [kg, setKg] = useState('');
   const [date, setDate] = useState(day);
-  if (!weighs || !protein) return null;
+  if (!weighs || !protein || !foodProtein) return null;
+  const proteinOk = (d: string) => protein.some((p) => p.date === d && p.done) || (foodProtein.get(d) ?? 0) >= BODY.proteinMinG;
 
   const avg = movingAverage(weighs, day);
   const target = targetKg(day);
@@ -45,7 +55,7 @@ export function BodyScreen() {
   }
 
   const last7 = Array.from({ length: 7 }, (_, i) => addDays(day, i - 6));
-  const proteinDays = last7.filter((d) => protein.some((p) => p.date === d && p.done)).length;
+  const proteinDays = last7.filter(proteinOk).length;
   const todayProtein = protein.find((p) => p.date === day)?.done;
 
   return (
@@ -63,6 +73,13 @@ export function BodyScreen() {
         {suggest && (
           <div className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-sm text-warn">
             Veckomedlet har legat under målkurvan två veckor i rad. {BODY.kcalSuggestion}
+            <Button
+              kind="soft"
+              className="mt-2 w-full"
+              onClick={() => void saveSettings({ surplusKcal: s.surplusKcal + BODY.kcalRaise })}
+            >
+              Höj överskottet i Mat: +{s.surplusKcal} → +{s.surplusKcal + BODY.kcalRaise} kcal
+            </Button>
           </div>
         )}
 
@@ -112,6 +129,7 @@ export function BodyScreen() {
             <div>
               <div className="font-semibold">Protein</div>
               <div className="text-xs text-mute">{BODY.proteinText}</div>
+              {(foodProtein.get(day) ?? 0) > 0 && <div className="text-xs text-mute">Loggat i Mat idag: {num(foodProtein.get(day) ?? 0, 0)} g</div>}
               <div className="text-sm mt-1">
                 {proteinDays} av 7 dagar senaste veckan
               </div>
@@ -122,7 +140,7 @@ export function BodyScreen() {
           </div>
           <div className="mt-3 flex gap-1">
             {last7.map((d) => (
-              <div key={d} className={`flex-1 h-2 rounded-full ${protein.some((p) => p.date === d && p.done) ? 'bg-accent' : 'bg-panel2'}`} />
+              <div key={d} className={`flex-1 h-2 rounded-full ${proteinOk(d) ? 'bg-accent' : 'bg-panel2'}`} />
             ))}
           </div>
         </Card>

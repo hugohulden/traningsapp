@@ -8,6 +8,11 @@ export const Icons = {
       <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
     </svg>
   ),
+  mat: (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" {...P}>
+      <path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5a2 2 0 0 0 2 2M9 3v5a2 2 0 0 1-2 2M17 21V3c-2.2 1-3.5 3.6-3.5 7 0 2 1 3 3.5 3" />
+    </svg>
+  ),
   plan: (
     <svg viewBox="0 0 24 24" className="h-6 w-6" {...P}>
       <rect x="3" y="4.5" width="18" height="16" rx="3" />

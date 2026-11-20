@@ -71,7 +71,7 @@ export function Header({ title, onBack, right, sub }: { title: string; onBack?: 
   );
 }
 
-export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+export function Sheet({ open, onClose, title, children, onBack }: { open: boolean; onClose: () => void; title: string; children: ReactNode; onBack?: () => void }) {
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -87,7 +87,14 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative max-h-[92vh] overflow-y-auto rounded-t-3xl bg-panel border-t border-line safe-bottom">
         <div className="sticky top-0 bg-panel flex items-center justify-between px-4 pt-4 pb-2 z-10">
-          <h2 className="text-lg font-bold">{title}</h2>
+          <div className="flex min-w-0 items-center gap-1">
+            {onBack && (
+              <button onClick={onBack} className="-ml-2 h-10 w-10 shrink-0 rounded-full text-2xl active:bg-panel2" aria-label="Tillbaka">
+                ‹
+              </button>
+            )}
+            <h2 className="truncate text-lg font-bold">{title}</h2>
+          </div>
           <button onClick={onClose} className="h-10 w-10 rounded-full bg-panel2 text-lg" aria-label="Stäng">
             ✕
           </button>

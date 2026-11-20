@@ -106,6 +106,7 @@ export function SettingsScreen() {
           />
           <div className="mt-2 text-xs text-mute">Auto följer telefonens inställning för ljust/mörkt läge.</div>
         </Card>
+        <FoodSettingsCard />
         <Card>
           <div className="font-semibold mb-3">Backup</div>
           <div className="text-sm text-mute mb-3">
@@ -362,6 +363,49 @@ function GarminSync() {
           </div>
         )}
         <div className="text-xs text-mute">Nyckeln sparas bara i telefonen och följer inte med i backupfilen. Testlopp importeras också, men du fyller i själva testtiden.</div>
+      </div>
+    </Card>
+  );
+}
+
+/** Mat: kalorimål, makrofördelning och AI-foto. */
+function FoodSettingsCard() {
+  const s = useAppSettings();
+  const [url, setUrl] = useState(s.aiProxyUrl);
+  const [code, setCode] = useState(s.aiAppCode);
+  const sum = s.macroPct.p + s.macroPct.c + s.macroPct.f;
+  const target = s.maintenanceKcal + s.surplusKcal;
+  const setPct = (k: 'p' | 'c' | 'f', v: number) => void saveSettings({ macroPct: { ...s.macroPct, [k]: Math.round(v) } });
+  return (
+    <Card>
+      <div className="font-semibold mb-3">Mat</div>
+      <div className="grid grid-cols-2 gap-3">
+        <NumInput label="Underhåll (kcal/dag)" value={s.maintenanceKcal} onSave={(v) => void saveSettings({ maintenanceKcal: Math.round(v) })} hint="Snitt total förbrukning enligt Garmin" />
+        <NumInput label="Överskott (kcal/dag)" value={s.surplusKcal} onSave={(v) => void saveSettings({ surplusKcal: Math.round(v) })} />
+      </div>
+      <div className="mt-2 text-sm">
+        Dagligt mål: <b>{target.toLocaleString('sv-SE')} kcal</b>
+        <span className="text-mute"> (fyller du i dagens Garmin-förbrukning i Mat gäller den i stället för underhållet)</span>
+      </div>
+      <div className="mt-4 text-sm text-mute">Makrofördelning (% av kalorimålet)</div>
+      <div className="mt-1 grid grid-cols-3 gap-3">
+        <NumInput label="Protein %" value={s.macroPct.p} onSave={(v) => setPct('p', v)} hint={`${Math.round((target * s.macroPct.p) / 400)} g`} />
+        <NumInput label="Kolhydrater %" value={s.macroPct.c} onSave={(v) => setPct('c', v)} hint={`${Math.round((target * s.macroPct.c) / 400)} g`} />
+        <NumInput label="Fett %" value={s.macroPct.f} onSave={(v) => setPct('f', v)} hint={`${Math.round((target * s.macroPct.f) / 900)} g`} />
+      </div>
+      {sum !== 100 && <div className="mt-2 text-sm text-warn">Summan är {sum} % – den bör vara 100 %.</div>}
+
+      <div className="mt-5 font-semibold">AI-foto</div>
+      <div className="mt-1 text-xs text-mute">
+        Fotot skickas till din egen Cloudflare Worker, som frågar Claude. API-nyckeln ligger bara i Cloudflare. Se README → "AI-foto" för hur du sätter upp den.
+      </div>
+      <div className="mt-3 space-y-3">
+        <Field label="Worker-adress">
+          <input className={inputCls} placeholder="https://mat-foto.<namn>.workers.dev" value={url} onChange={(e) => setUrl(e.target.value)} onBlur={() => void saveSettings({ aiProxyUrl: url.trim() })} autoCapitalize="off" autoCorrect="off" />
+        </Field>
+        <Field label="Appkod" hint="Samma kod som du lade in som APP_CODE i Cloudflare.">
+          <input className={inputCls} value={code} onChange={(e) => setCode(e.target.value)} onBlur={() => void saveSettings({ aiAppCode: code.trim() })} autoCapitalize="off" autoCorrect="off" />
+        </Field>
       </div>
     </Card>
   );

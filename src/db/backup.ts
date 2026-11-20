@@ -17,7 +17,7 @@ export async function exportAll(db: AppDB): Promise<BackupFile> {
   });
   // Hemlig nyckel följer inte med i backupfilen.
   data.kv = (data.kv as { key: string; value: Record<string, unknown> }[]).map((r) =>
-    r.key === 'settings' && r.value && typeof r.value === 'object' ? { ...r, value: { ...r.value, intervalsApiKey: '' } } : r,
+    r.key === 'settings' && r.value && typeof r.value === 'object' ? { ...r, value: { ...r.value, intervalsApiKey: '', aiAppCode: '' } } : r,
   );
   return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), data };
 }
@@ -34,6 +34,7 @@ export async function importAll(db: AppDB, file: unknown): Promise<void> {
   await db.transaction('rw', TABLES.map((t) => db.table(t)), async () => {
     const cur = (await db.table('kv').get('settings'))?.value as Record<string, unknown> | undefined;
     const keepKey = cur?.intervalsApiKey;
+    const keepCode = cur?.aiAppCode;
     for (const t of TABLES) {
       await db.table(t).clear();
       const rows = file.data[t];
@@ -41,7 +42,10 @@ export async function importAll(db: AppDB, file: unknown): Promise<void> {
     }
     // Behåll telefonens API-nyckel (den finns aldrig i backupen).
     const imp = (await db.table('kv').get('settings'))?.value as Record<string, unknown> | undefined;
-    if (keepKey && imp && !imp.intervalsApiKey) await db.table('kv').put({ key: 'settings', value: { ...imp, intervalsApiKey: keepKey } });
+    const patch: Record<string, unknown> = {};
+    if (keepKey && imp && !imp.intervalsApiKey) patch.intervalsApiKey = keepKey;
+    if (keepCode && imp && !imp.aiAppCode) patch.aiAppCode = keepCode;
+    if (imp && Object.keys(patch).length) await db.table('kv').put({ key: 'settings', value: { ...imp, ...patch } });
   });
 }
 
