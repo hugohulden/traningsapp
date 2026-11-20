@@ -37,7 +37,7 @@ export function Ring({ eaten, target, children }: { eaten: number; target: numbe
           </linearGradient>
         </defs>
         <circle cx="80" cy="80" r={r} fill="none" stroke="var(--color-panel2)" strokeWidth="12" />
-        <circle
+        {shown > 0 && <circle
           cx="80"
           cy="80"
           r={r}
@@ -47,7 +47,7 @@ export function Ring({ eaten, target, children }: { eaten: number; target: numbe
           strokeLinecap="round"
           strokeDasharray={`${shown * c} ${c}`}
           style={{ transition: 'stroke-dasharray .4s ease' }}
-        />
+        />}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">{children}</div>
     </div>

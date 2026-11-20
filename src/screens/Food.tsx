@@ -11,7 +11,7 @@ import { C, ChartBox, LegendItem, axisProps, tooltipProps } from '../ui/charts';
 import { useToday } from '../ui/hooks';
 import { ask } from '../ui/confirm';
 import { toast } from '../ui/toast';
-import { dayTarget, macroTargets, MEALS, MEAL_NAMES, mealForTime, sumNutrients } from '../food/engine';
+import { dayTarget, macroTargets, MEALS, MEAL_NAMES, sumNutrients } from '../food/engine';
 import { copyLogs, deleteLogs, setBurned, updateLog } from '../food/store';
 import { AddSheet } from '../food/ui/AddSheet';
 import { amountStr, kcalStr, MacroBar, MealPicker, Ring } from '../food/ui/parts';
@@ -45,7 +45,7 @@ export function FoodScreen() {
           </button>
         }
       />
-      <div className="space-y-4 p-4 pb-24">
+      <div className="space-y-4 p-4">
         {/* Dagbläddring */}
         <div className="flex items-center gap-2">
           <button onClick={() => setDate(addDays(date, -1))} className="h-11 w-11 rounded-2xl bg-panel2 text-2xl" aria-label="Föregående dag">
@@ -122,14 +122,6 @@ export function FoodScreen() {
 
         <Last7 date={date} s={s} />
       </div>
-
-      {/* Snabbknapp nära tummen: måltid efter klockslag */}
-      <button
-        onClick={() => setAdd(mealForTime(new Date()))}
-        className="glow-accent fixed bottom-28 right-4 z-20 flex h-14 items-center gap-2 rounded-full bg-accent px-5 text-base font-bold text-onaccent"
-      >
-        <span className="text-2xl leading-none">+</span> Logga
-      </button>
 
       <AddSheet open={!!add} onClose={() => setAdd(null)} date={date} meal={add ?? 'frukost'} />
       {edit && <EditLogSheet rec={edit} onClose={() => setEdit(null)} />}
